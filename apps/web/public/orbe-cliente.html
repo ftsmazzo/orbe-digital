@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ORBE Digital — A transformação por fase</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --navy: #012245;
+      --navy-deep: #00182f;
+      --orbit: #0a3a5c;
+      --gold: #c8a04c;
+      --gold-soft: #e0c88a;
+      --ink: #1a1f26;
+      --muted: #5c6670;
+      --line: rgba(1, 34, 69, 0.12);
+      --paper: #f3f1ec;
+      --white: #faf9f6;
+      --teal: #2e7271;
+      --ease: cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: "Manrope", system-ui, sans-serif;
+      color: var(--ink);
+      background: var(--paper);
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .wrap { width: min(1120px, calc(100% - 2.5rem)); margin-inline: auto; }
+
+    /* ——— HERO ——— */
+    .hero {
+      position: relative;
+      min-height: 100svh;
+      display: grid;
+      align-items: end;
+      overflow: hidden;
+      color: var(--white);
+      background:
+        radial-gradient(ellipse 70% 55% at 75% 15%, rgba(46, 114, 113, 0.3), transparent 55%),
+        radial-gradient(ellipse 45% 35% at 10% 85%, rgba(200, 160, 76, 0.16), transparent 50%),
+        linear-gradient(165deg, var(--navy-deep) 0%, var(--navy) 50%, #0c3550 100%);
+    }
+
+    .hero::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+      background-size: 72px 72px;
+      mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, black, transparent);
+      pointer-events: none;
+    }
+
+    .orbit {
+      position: absolute;
+      right: -8%;
+      top: 6%;
+      width: min(56vw, 580px);
+      aspect-ratio: 1;
+      border-radius: 50%;
+      border: 1px solid rgba(200, 160, 76, 0.28);
+      animation: spin 48s linear infinite;
+      pointer-events: none;
+    }
+
+    .orbit::before {
+      content: "";
+      position: absolute;
+      inset: 14%;
+      border-radius: 50%;
+      border: 1px solid rgba(200, 160, 76, 0.16);
+      animation: spin 30s linear infinite reverse;
+    }
+
+    .orbit-dot {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--gold);
+      top: 8%;
+      left: 50%;
+      transform: translateX(-50%);
+      box-shadow: 0 0 0 6px rgba(200, 160, 76, 0.15);
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .hero-inner {
+      position: relative;
+      z-index: 1;
+      padding: 2rem 0 4.5rem;
+      width: min(1120px, calc(100% - 2.5rem));
+      margin-inline: auto;
+    }
+
+    .brand-row {
+      display: flex;
+      align-items: center;
+      margin-bottom: clamp(4.5rem, 16vh, 9rem);
+    }
+
+    .brand-mark { display: flex; align-items: center; gap: 0.85rem; }
+
+    .brand-glyph {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      border: 1.5px solid var(--gold);
+      display: grid;
+      place-items: center;
+    }
+
+    .brand-glyph span {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--gold);
+    }
+
+    .brand-name {
+      font-family: "Cormorant Garamond", Georgia, serif;
+      font-size: 1.35rem;
+      letter-spacing: 0.28em;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    .brand-sub {
+      font-size: 0.72rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: rgba(250, 249, 246, 0.55);
+      margin-top: 0.15rem;
+    }
+
+    .hero h1 {
+      font-family: "Cormorant Garamond", Georgia, serif;
+      font-weight: 500;
+      font-size: clamp(2.8rem, 7.5vw, 5.4rem);
+      line-height: 0.98;
+      letter-spacing: -0.02em;
+      max-width: 14ch;
+      margin-bottom: 1.25rem;
+    }
+
+    .hero h1 em {
+      font-style: italic;
+      color: var(--gold-soft);
+    }
+
+    .hero-lead {
+      max-width: 36rem;
+      font-size: 1.05rem;
+      color: rgba(250, 249, 246, 0.72);
+    }
+
+    .stack-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.55rem;
+      margin-top: 2.25rem;
+    }
+
+    .stack-pills span {
+      border: 1px solid rgba(200, 160, 76, 0.35);
+      padding: 0.4rem 0.85rem;
+      font-size: 0.72rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--gold-soft);
+    }
+
+    /* ——— SHARED ——— */
+    section { padding: clamp(4.5rem, 9vw, 7rem) 0; }
+
+    .section-label {
+      font-size: 0.72rem;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--teal);
+      font-weight: 600;
+      margin-bottom: 1rem;
+    }
+
+    h2 {
+      font-family: "Cormorant Garamond", Georgia, serif;
+      font-weight: 500;
+      font-size: clamp(2.2rem, 4.8vw, 3.4rem);
+      line-height: 1.05;
+      letter-spacing: -0.02em;
+      color: var(--navy);
+      max-width: 18ch;
+    }
+
+    .section-head {
+      display: grid;
+      gap: 1rem;
+      margin-bottom: clamp(2.25rem, 5vw, 3.25rem);
+      max-width: 42rem;
+    }
+
+    .section-head p { color: var(--muted); font-size: 1.05rem; }
+
+    /* ——— LAYERS ——— */
+    .layers { background: var(--white); border-block: 1px solid var(--line); }
+
+    .layer-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1px;
+      background: var(--line);
+      border: 1px solid var(--line);
+    }
+
+    .layer {
+      background: var(--white);
+      padding: clamp(1.5rem, 3vw, 2.1rem);
+      min-height: 200px;
+    }
+
+    .layer h3 {
+      font-family: "Cormorant Garamond", Georgia, serif;
+      font-size: 1.7rem;
+      font-weight: 500;
+      color: var(--navy);
+      margin-bottom: 0.55rem;
+    }
+
+    .layer p { color: var(--muted); font-size: 0.95rem; }
+
+    .layer-tag {
+      display: inline-block;
+      font-size: 0.68rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 0.85rem;
+      font-weight: 600;
+    }
+
+    /* ——— PHASE TRANSFORM ——— */
+    .phase {
+      border-bottom: 1px solid var(--line);
+    }
+
+    .phase:nth-child(even) { background: var(--white); }
+    .phase:nth-child(odd) { background: var(--paper); }
+
+    .phase-layout {
+      display: grid;
+      grid-template-columns: 0.85fr 1.15fr;
+      gap: clamp(1.75rem, 4vw, 3.5rem);
+      align-items: start;
+    }
+
+    .phase-letter {
+      font-family: "Cormorant Garamond", Georgia, serif;
+      font-size: clamp(5rem, 12vw, 8rem);
+      line-height: 0.85;
+      color: var(--navy);
+      opacity: 0.12;
+      margin-bottom: -0.4rem;
+    }
+
+    .phase-name {
+      font-size: 0.72rem;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--teal);
+      font-weight: 700;
+      margin-bottom: 0.65rem;
+    }
+
+    .phase-side h3 {
+      font-family: "Cormorant Garamond", Georgia, serif;
+      font-size: clamp(1.9rem, 3.5vw, 2.5rem);
+      font-weight: 500;
+      color: var(--navy);
+      line-height: 1.1;
+      margin-bottom: 0.85rem;
+    }
+
+    .phase-side > p {
+      color: var(--muted);
+      font-size: 1rem;
+      max-width: 28rem;
+    }
+
+    .transform-block {
+      display: grid;
+      gap: 1rem;
+    }
+
+    .t-row {
+      display: grid;
+      grid-template-columns: 7.5rem 1fr;
+      gap: 1rem;
+      padding: 1.15rem 1.25rem;
+      background: rgba(1, 34, 69, 0.03);
+      border-left: 2px solid var(--gold);
+    }
+
+    .phase:nth-child(even) .t-row {
+      background: var(--paper);
+    }
+
+    .t-key {
+      font-size: 0.7rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--navy);
+      font-weight: 700;
+      padding-top: 0.15rem;
+    }
+
+    .t-val {
+      color: var(--ink);
+      font-size: 0.95rem;
+    }
+
+    .t-val strong {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 0.2rem;
+      color: var(--navy);
+    }
+
+    .t-val span { color: var(--muted); font-size: 0.9rem; }
+
+    .flow {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.45rem;
+      margin-top: 1.25rem;
+    }
+
+    .flow b {
+      font-weight: 600;
+      font-size: 0.78rem;
+      letter-spacing: 0.04em;
+      padding: 0.4rem 0.7rem;
+      background: var(--navy);
+      color: var(--white);
+    }
+
+    .flow i {
+      font-style: normal;
+      color: var(--gold);
+      font-size: 0.85rem;
+    }
+
+    .phase-o .phase-letter,
+    .phase-o .t-row { border-left-color: var(--navy); }
+    .phase-r .phase-letter { color: var(--teal); }
+    .phase-r .t-row { border-left-color: var(--teal); }
+    .phase-b .phase-letter { color: var(--orbit); }
+    .phase-b .t-row { border-left-color: var(--orbit); }
+    .phase-e .phase-letter { color: var(--gold); }
+    .phase-e .t-row { border-left-color: var(--gold); }
+
+    /* ——— PIPELINE ——— */
+    .pipeline {
+      background: var(--navy-deep);
+      color: var(--white);
+    }
+
+    .pipeline .section-label { color: var(--gold-soft); }
+    .pipeline h2 { color: var(--white); }
+    .pipeline .section-head p { color: rgba(250,249,246,0.65); }
+
+    .pipe {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 0.65rem;
+    }
+
+    .pipe-step {
+      border: 1px solid rgba(255,255,255,0.12);
+      padding: 1.15rem 0.9rem;
+      min-height: 150px;
+      background: rgba(255,255,255,0.03);
+    }
+
+    .pipe-n {
+      font-family: "Cormorant Garamond", Georgia, serif;
+      font-size: 1.6rem;
+      color: var(--gold-soft);
+      line-height: 1;
+      margin-bottom: 0.65rem;
+    }
+
+    .pipe-step h3 {
+      font-size: 0.78rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-weight: 700;
+      margin-bottom: 0.45rem;
+    }
+
+    .pipe-step p {
+      font-size: 0.82rem;
+      color: rgba(250,249,246,0.55);
+    }
+
+    /* ——— AGENTS ——— */
+    .agents { background: var(--paper); }
+
+    .agent-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.25rem;
+    }
+
+    .agent {
+      padding-top: 1.15rem;
+      border-top: 2px solid var(--navy);
+    }
+
+    .agent:nth-child(2) { border-top-color: var(--teal); }
+    .agent:nth-child(3) { border-top-color: var(--gold); }
+    .agent:nth-child(4) { border-top-color: var(--orbit); }
+    .agent:nth-child(5) { border-top-color: var(--teal); }
+    .agent:nth-child(6) { border-top-color: var(--gold); }
+
+    .agent h3 {
+      font-family: "Cormorant Garamond", Georgia, serif;
+      font-size: 1.55rem;
+      font-weight: 500;
+      color: var(--navy);
+      margin-bottom: 0.4rem;
+    }
+
+    .agent p { color: var(--muted); font-size: 0.92rem; }
+
+    .agent .fase {
+      font-size: 0.68rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--gold);
+      font-weight: 700;
+      margin-bottom: 0.55rem;
+      display: block;
+    }
+
+    /* ——— CLOSE ——— */
+    .close {
+      padding: clamp(5rem, 11vw, 7.5rem) 0;
+      text-align: center;
+      background:
+        radial-gradient(ellipse 55% 45% at 50% 100%, rgba(200,160,76,0.12), transparent 60%),
+        var(--white);
+    }
+
+    .close h2 { margin-inline: auto; max-width: 16ch; }
+
+    .close p {
+      margin: 1.25rem auto 0;
+      max-width: 34rem;
+      color: var(--muted);
+      font-size: 1.05rem;
+    }
+
+    .close-brand {
+      margin-top: 2.75rem;
+      font-family: "Cormorant Garamond", Georgia, serif;
+      font-size: 1.1rem;
+      letter-spacing: 0.32em;
+      text-transform: uppercase;
+      color: var(--navy);
+    }
+
+    .close-line {
+      width: 48px;
+      height: 1px;
+      background: var(--gold);
+      margin: 1.15rem auto 0;
+    }
+
+    footer {
+      padding: 1.5rem 0 2rem;
+      border-top: 1px solid var(--line);
+      background: var(--paper);
+    }
+
+    .footer-inner {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 0.75rem;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    .reveal {
+      opacity: 0;
+      transform: translateY(24px);
+      transition: opacity 0.85s var(--ease), transform 0.85s var(--ease);
+    }
+
+    .reveal.in { opacity: 1; transform: none; }
+
+    @media (max-width: 960px) {
+      .layer-grid,
+      .agent-grid { grid-template-columns: 1fr; }
+      .phase-layout { grid-template-columns: 1fr; }
+      .pipe { grid-template-columns: 1fr 1fr 1fr; }
+      .orbit { opacity: 0.5; right: -28%; }
+      .t-row { grid-template-columns: 1fr; gap: 0.35rem; }
+    }
+
+    @media (max-width: 560px) {
+      .pipe { grid-template-columns: 1fr 1fr; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .orbit, .orbit::before { animation: none; }
+      .reveal { opacity: 1; transform: none; transition: none; }
+    }
+  </style>
+</head>
+<body>
+  <header class="hero">
+    <div class="orbit" aria-hidden="true"><div class="orbit-dot"></div></div>
+    <div class="hero-inner">
+      <div class="brand-row">
+        <div class="brand-mark">
+          <div class="brand-glyph" aria-hidden="true"><span></span></div>
+          <div>
+            <div class="brand-name">ORBE</div>
+            <div class="brand-sub">Transformação digital do método</div>
+          </div>
+        </div>
+      </div>
+      <h1>O método continua. A <em>operação</em> muda.</h1>
+      <p class="hero-lead">
+        Em cada fase do ORBE, o que hoje é conversa, planilha e memória
+        vira sistema, CRM e agentes — com a sessão gravada como porta de entrada.
+      </p>
+      <div class="stack-pills" aria-label="Camadas da solução">
+        <span>Sistema</span>
+        <span>CRM</span>
+        <span>Agentes</span>
+        <span>Sessão Gravada</span>
+      </div>
+    </div>
+  </header>
+
+  <section class="layers">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <p class="section-label">Camadas</p>
+        <h2>Três peças que carregam o método.</h2>
+        <p>O ORBE permanece a lógica. Estas camadas executam e organizam.</p>
+      </div>
+      <div class="layer-grid reveal">
+        <article class="layer">
+          <span class="layer-tag">Camada 01</span>
+          <h3>Sistema ORBE</h3>
+          <p>
+            Núcleo de dados: empresa, diagnóstico, metas, indicadores,
+            planos de ação, status do ciclo e documentos gerados.
+          </p>
+        </article>
+        <article class="layer">
+          <span class="layer-tag">Camada 02</span>
+          <h3>CRM</h3>
+          <p>
+            Pipeline do relacionamento: lead, sessão, proposta, contrato,
+            onboarding e renovação — acoplado às fases O·R·B·E.
+          </p>
+        </article>
+        <article class="layer">
+          <span class="layer-tag">Camada 03</span>
+          <h3>Agentes</h3>
+          <p>
+            Capturam áudio, estruturam fatos, sugerem prioridades, rascunham
+            planos e relatórios. O consultor valida o que segue.
+          </p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- O -->
+  <section class="phase phase-o">
+    <div class="wrap">
+      <div class="phase-layout reveal">
+        <div class="phase-side">
+          <div class="phase-letter" aria-hidden="true">O</div>
+          <p class="phase-name">Organizar</p>
+          <h3>Da conversa ao diagnóstico estruturado</h3>
+          <p>
+            Em vez de preencher formulários à mão depois da reunião,
+            a própria sessão alimenta o sistema.
+          </p>
+          <div class="flow" aria-label="Fluxo da fase O">
+            <b>Gravar</b><i>→</i>
+            <b>Transcrever</b><i>→</i>
+            <b>Extrair</b><i>→</i>
+            <b>Validar</b>
+          </div>
+        </div>
+        <div class="transform-block">
+          <div class="t-row">
+            <div class="t-key">Entrada</div>
+            <div class="t-val">
+              <strong>Sessão Gravada</strong>
+              <span>Áudio da reunião com consentimento; vínculo ao cliente no CRM.</span>
+            </div>
+          </div>
+          <div class="t-row">
+            <div class="t-key">Agente</div>
+            <div class="t-val">
+              <strong>Captura + Diagnóstico</strong>
+              <span>STT, diarização e mapeamento para os campos ORBE (estratégia, finanças, processos, comercial, SWOT, maturidade).</span>
+            </div>
+          </div>
+          <div class="t-row">
+            <div class="t-key">Sistema</div>
+            <div class="t-val">
+              <strong>Ficha viva do diagnóstico</strong>
+              <span>Campos preenchidos com evidência; lacunas e perguntas em aberto listadas.</span>
+            </div>
+          </div>
+          <div class="t-row">
+            <div class="t-key">CRM</div>
+            <div class="t-val">
+              <strong>Estágio “Diagnóstico”</strong>
+              <span>Lead/cliente avança no pipeline; histórico da sessão fica anexado.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- R -->
+  <section class="phase phase-r">
+    <div class="wrap">
+      <div class="phase-layout reveal">
+        <div class="phase-side">
+          <div class="phase-letter" aria-hidden="true">R</div>
+          <p class="phase-name">Resultar</p>
+          <h3>Do diagnóstico ao plano mensurável</h3>
+          <p>
+            A planilha de metas e perspectivas vira motor no sistema —
+            com rascunho inteligente a partir do que já foi validado.
+          </p>
+          <div class="flow" aria-label="Fluxo da fase R">
+            <b>Diagnóstico</b><i>→</i>
+            <b>Metas</b><i>→</i>
+            <b>KPIs</b><i>→</i>
+            <b>Mapa</b>
+          </div>
+        </div>
+        <div class="transform-block">
+          <div class="t-row">
+            <div class="t-key">Entrada</div>
+            <div class="t-val">
+              <strong>Diagnóstico validado</strong>
+              <span>Prioridades, riscos e maturidade confirmados na fase O.</span>
+            </div>
+          </div>
+          <div class="t-row">
+            <div class="t-key">Agente</div>
+            <div class="t-val">
+              <strong>Analista + Planejador</strong>
+              <span>Sugere metas globais, indicadores nas 4 perspectivas e direção (aumentar/diminuir).</span>
+            </div>
+          </div>
+          <div class="t-row">
+            <div class="t-key">Sistema</div>
+            <div class="t-val">
+              <strong>Motor de planejamento</strong>
+              <span>Substitui as abas de metas/estratégia da planilha: planejado mensal, unidades, vínculo meta↔indicador.</span>
+            </div>
+          </div>
+          <div class="t-row">
+            <div class="t-key">CRM</div>
+            <div class="t-val">
+              <strong>Estágio “Planejamento”</strong>
+              <span>Escopo da proposta alinhado ao plano; entregável de planejamento gerado a partir dos dados.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- B -->
+  <section class="phase phase-b">
+    <div class="wrap">
+      <div class="phase-layout reveal">
+        <div class="phase-side">
+          <div class="phase-letter" aria-hidden="true">B</div>
+          <p class="phase-name">Basear</p>
+          <h3>Do plano à rotina executável</h3>
+          <p>
+            Planos de ação deixam de viver só no Excel: responsáveis,
+            prazos e status passam a operar no fluxo do cliente.
+          </p>
+          <div class="flow" aria-label="Fluxo da fase B">
+            <b>Metas</b><i>→</i>
+            <b>Ações</b><i>→</i>
+            <b>Donos</b><i>→</i>
+            <b>Rotina</b>
+          </div>
+        </div>
+        <div class="transform-block">
+          <div class="t-row">
+            <div class="t-key">Entrada</div>
+            <div class="t-val">
+              <strong>Metas e indicadores aprovados</strong>
+              <span>O que precisa acontecer para o plano sair do papel.</span>
+            </div>
+          </div>
+          <div class="t-row">
+            <div class="t-key">Agente</div>
+            <div class="t-val">
+              <strong>Planejador (execução)</strong>
+              <span>Rascunha planos de ação por perspectiva, com responsável sugerido e coerência meta↔ação.</span>
+            </div>
+          </div>
+          <div class="t-row">
+            <div class="t-key">Sistema</div>
+            <div class="t-val">
+              <strong>Board de ações + base financeira</strong>
+              <span>Status, saldo de prazo, checklists de rotina financeira e processos essenciais.</span>
+            </div>
+          </div>
+          <div class="t-row">
+            <div class="t-key">CRM</div>
+            <div class="t-val">
+              <strong>Estágio “Implantação”</strong>
+              <span>Equipe do cliente cadastrada; ações atribuídas; base documentada no histórico.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- E -->
+  <section class="phase phase-e">
+    <div class="wrap">
+      <div class="phase-layout reveal">
+        <div class="phase-side">
+          <div class="phase-letter" aria-hidden="true">E</div>
+          <p class="phase-name">Evoluir</p>
+          <h3>Do acompanhamento manual à leitura contínua</h3>
+          <p>
+            Reuniões deixam de começar do zero: o sistema já traz
+            planejado × realizado, riscos e um rascunho de relatório.
+          </p>
+          <div class="flow" aria-label="Fluxo da fase E">
+            <b>KPIs</b><i>→</i>
+            <b>Alertas</b><i>→</i>
+            <b>Briefing</b><i>→</i>
+            <b>Ajuste</b>
+          </div>
+        </div>
+        <div class="transform-block">
+          <div class="t-row">
+            <div class="t-key">Entrada</div>
+            <div class="t-val">
+              <strong>Realizados + status das ações</strong>
+              <span>Atualização periódica dos indicadores e do board de execução.</span>
+            </div>
+          </div>
+          <div class="t-row">
+            <div class="t-key">Agente</div>
+            <div class="t-val">
+              <strong>Acompanhamento</strong>
+              <span>Scores de risco, briefing da reunião e rascunho do relatório mensal.</span>
+            </div>
+          </div>
+          <div class="t-row">
+            <div class="t-key">Sistema</div>
+            <div class="t-val">
+              <strong>Painéis e alertas</strong>
+              <span>Dashboards por perspectiva; ações atrasadas; proximidade com o planejado.</span>
+            </div>
+          </div>
+          <div class="t-row">
+            <div class="t-key">CRM</div>
+            <div class="t-val">
+              <strong>Estágio “Acompanhamento”</strong>
+              <span>Cadência de contatos, histórico de revisões e gatilho de renovação.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="pipeline">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <p class="section-label">Jornada no CRM</p>
+        <h2>O ciclo comercial acoplado ao ORBE.</h2>
+        <p>Cada estágio do relacionamento dispara a camada certa do método.</p>
+      </div>
+      <div class="pipe reveal">
+        <div class="pipe-step">
+          <div class="pipe-n">01</div>
+          <h3>Lead</h3>
+          <p>Cadastro e contexto inicial da empresa.</p>
+        </div>
+        <div class="pipe-step">
+          <div class="pipe-n">02</div>
+          <h3>Sessão</h3>
+          <p>Gravação + captura → diagnóstico rascunho.</p>
+        </div>
+        <div class="pipe-step">
+          <div class="pipe-n">03</div>
+          <h3>Proposta</h3>
+          <p>Agente comercial monta a partir do escopo ORBE.</p>
+        </div>
+        <div class="pipe-step">
+          <div class="pipe-n">04</div>
+          <h3>Contrato</h3>
+          <p>Aceite e abertura do ciclo no sistema.</p>
+        </div>
+        <div class="pipe-step">
+          <div class="pipe-n">05</div>
+          <h3>Ciclo ORBE</h3>
+          <p>O → R → B → E operando com agentes.</p>
+        </div>
+        <div class="pipe-step">
+          <div class="pipe-n">06</div>
+          <h3>Renovação</h3>
+          <p>Histórico e resultados sustentam o próximo ciclo.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="agents">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <p class="section-label">Ecossistema de agentes</p>
+        <h2>Quem opera em cada momento.</h2>
+        <p>Cada agente lê e escreve no núcleo ORBE. O consultor aprova o que é crítico.</p>
+      </div>
+      <div class="agent-grid reveal">
+        <article class="agent">
+          <span class="fase">Fase O</span>
+          <h3>Captura</h3>
+          <p>Gravação, transcrição e primeira organização dos fatos da conversa.</p>
+        </article>
+        <article class="agent">
+          <span class="fase">Fase O</span>
+          <h3>Diagnóstico</h3>
+          <p>Completa a ficha ORBE, marca gaps e sugere maturidade.</p>
+        </article>
+        <article class="agent">
+          <span class="fase">O → R</span>
+          <h3>Analista</h3>
+          <p>Riscos, prioridades e recomendações a partir do diagnóstico.</p>
+        </article>
+        <article class="agent">
+          <span class="fase">R → B</span>
+          <h3>Planejador</h3>
+          <p>Metas, indicadores e rascunhos de planos de ação.</p>
+        </article>
+        <article class="agent">
+          <span class="fase">Fase E</span>
+          <h3>Acompanhamento</h3>
+          <p>Alertas, briefing de reunião e rascunho de relatório.</p>
+        </article>
+        <article class="agent">
+          <span class="fase">CRM</span>
+          <h3>Comercial</h3>
+          <p>Proposta e contrato a partir do escopo e dos modelos ORBE.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="close">
+    <div class="wrap reveal">
+      <p class="section-label">Síntese</p>
+      <h2>Método intacto. Operação digital.</h2>
+      <p>
+        O ORBE define o que fazer. Sistema, CRM e agentes definem como
+        executar — começando pela conversa gravada e terminando no
+        acompanhamento contínuo.
+      </p>
+      <div class="close-brand">ORBE DIGITAL</div>
+      <div class="close-line"></div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="wrap footer-inner">
+      <span>Método ORBE · camada digital</span>
+      <span>Sistema · CRM · Agentes</span>
+    </div>
+  </footer>
+
+  <script>
+    const reveals = document.querySelectorAll(".reveal");
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => {
+          if (e.isIntersecting) e.target.classList.add("in");
+        });
+      },
+      { threshold: 0.16, rootMargin: "0px 0px -36px 0px" }
+    );
+    reveals.forEach((el) => io.observe(el));
+  </script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+{
+  "name": "orbe-digital",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --filter @orbe/web dev",
+    "build": "pnpm --filter @orbe/web build",
+    "db:generate": "pnpm --filter @orbe/db generate",
+    "db:migrate": "pnpm --filter @orbe/db migrate",
+    "db:push": "pnpm --filter @orbe/db push",
+    "db:seed": "pnpm --filter @orbe/db seed"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "pnpm@9.15.9"
+}

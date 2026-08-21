@@ -1,0 +1,12 @@
+node_modules
+.next
+.git
+.data
+uploads
+Contexto
+*.md
+.env
+.env.local
+apps/web/.env*
+apps/web/node_modules
+packages/db/node_modules

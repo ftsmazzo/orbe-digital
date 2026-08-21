@@ -1,0 +1,15 @@
+node_modules
+.next
+dist
+.turbo
+.env
+.env.local
+*.log
+.DS_Store
+uploads
+.data
+apps/web/.env.local
+packages/db/drizzle/meta
+
+apps/web/.env
+apps/web/.env.local

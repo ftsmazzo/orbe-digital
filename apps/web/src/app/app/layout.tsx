@@ -1,0 +1,52 @@
+import Link from "next/link";
+import { BarChart3, ClipboardList, Handshake, LayoutDashboard, Mic2, Target, Users } from "lucide-react";
+import { getCurrentOrg } from "@/lib/org";
+
+const nav = [
+  { href: "/app/clients", label: "Clientes", icon: Users },
+  { href: "/app/sessions", label: "Sessoes", icon: Mic2 },
+  { href: "/app/diagnostics", label: "Diagnosticos", icon: ClipboardList },
+  { href: "/app/planning", label: "Planejamento", icon: Target },
+  { href: "/app/actions", label: "Acoes", icon: LayoutDashboard },
+  { href: "/app/dashboard", label: "Dashboard", icon: BarChart3 },
+  { href: "/app/proposals", label: "Propostas", icon: Handshake },
+];
+
+export default async function AppLayout({ children }: { children: React.ReactNode }) {
+  const { orgName, session } = await getCurrentOrg();
+
+  return (
+    <div className="min-h-screen bg-[#f7f4ee] text-slate-900">
+      <aside className="fixed inset-y-0 left-0 hidden w-72 flex-col bg-[#012245] p-6 text-white lg:flex">
+        <Link href="/app/clients" className="block">
+          <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[#c8a04c]">ORBE</p>
+          <h1 className="mt-2 text-2xl font-semibold">Digital</h1>
+        </Link>
+        <nav className="mt-10 space-y-2">
+          {nav.map((item) => {
+            const Icon = item.icon;
+            return (
+              <Link key={item.href} href={item.href} className="flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium text-white/78 transition hover:bg-white/10 hover:text-white">
+                <Icon className="h-4 w-4 text-[#c8a04c]" />
+                {item.label}
+              </Link>
+            );
+          })}
+        </nav>
+        <div className="mt-auto rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-white/75">
+          <p className="font-semibold text-white">{orgName}</p>
+          <p className="mt-1">{session.user.email}</p>
+        </div>
+      </aside>
+      <div className="lg:pl-72">
+        <header className="sticky top-0 z-20 border-b border-[#012245]/10 bg-[#f7f4ee]/90 px-6 py-4 backdrop-blur lg:hidden">
+          <div className="flex items-center justify-between">
+            <Link href="/app/clients" className="font-semibold text-[#012245]">ORBE Digital</Link>
+            <Link href="/app/clients" className="text-sm text-[#2e7271]">Clientes</Link>
+          </div>
+        </header>
+        <main className="mx-auto max-w-7xl px-6 py-8">{children}</main>
+      </div>
+    </div>
+  );
+}

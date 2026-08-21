@@ -1,0 +1,53 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f7f4ee;
+  --foreground: #172033;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+.prose-orbe h1,
+.prose-orbe h2,
+.prose-orbe h3 {
+  color: #012245;
+  font-weight: 700;
+  margin-top: 1rem;
+}
+
+.prose-orbe h1 {
+  font-size: 1.75rem;
+}
+
+.prose-orbe h2 {
+  font-size: 1.25rem;
+}
+
+.prose-orbe p,
+.prose-orbe li {
+  color: #334155;
+  line-height: 1.7;
+}
+
+.prose-orbe ul,
+.prose-orbe ol {
+  padding-left: 1.25rem;
+  margin: 0.75rem 0;
+}
