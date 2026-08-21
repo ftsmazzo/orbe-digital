@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { desc, eq } from "drizzle-orm";
-import { Button, Card, Field, Input, PageHeader, Select, Textarea } from "@/components/ui";
+import { Card, PageHeader } from "@/components/ui";
+import { SessionCreateForm } from "@/components/SessionCreateForm";
 import { clients, consultingSessions, db } from "@/lib/db";
 import { formatDateTime } from "@/lib/format";
 import { getCurrentOrg } from "@/lib/org";
-import { createSession } from "../actions";
 
 export default async function SessionsPage() {
   const { orgId } = await getCurrentOrg();
@@ -21,7 +21,7 @@ export default async function SessionsPage() {
     <>
       <PageHeader
         title="Sessoes"
-        description="Registre consentimento, cole a transcricao ou envie audio e acompanhe o diagnostico ORBE."
+        description="Grave a conversa no celular (PWA), envie audio ou cole a transcricao — o ORBE organiza o diagnostico."
       />
       <div className="grid gap-6 xl:grid-cols-[420px_1fr]">
         <Card>
@@ -34,39 +34,7 @@ export default async function SessionsPage() {
               </Link>
             </p>
           ) : (
-            <form action={createSession} className="mt-4 grid gap-3">
-              <Field label="Cliente">
-                <Select name="clientId" required>
-                  <option value="">Selecione</option>
-                  {clientRows.map((client) => (
-                    <option key={client.id} value={client.id}>
-                      {client.name}
-                    </option>
-                  ))}
-                </Select>
-              </Field>
-              <Field label="Titulo">
-                <Input name="title" placeholder="Sessao de diagnostico ORBE" />
-              </Field>
-              <label className="flex items-center gap-2 text-sm text-slate-700">
-                <input name="consentGiven" type="checkbox" required />
-                Consentimento de gravacao/uso da conversa autorizado pelo cliente.
-              </label>
-              <Field label="Colar transcricao (recomendado por enquanto)">
-                <Textarea
-                  name="transcript"
-                  rows={8}
-                  placeholder="Cole aqui a conversa (Zoom, Meet, WhatsApp, anotacoes)..."
-                />
-              </Field>
-              <Field label="Ou envie audio da sessao">
-                <Input name="audio" type="file" accept="audio/*,video/*" />
-              </Field>
-              <p className="text-xs text-slate-500">
-                Com audio: dispara STT via n8n (Whisper). Sem audio: cole a transcricao acima. Sem webhook, o audio usa mock.
-              </p>
-              <Button>Criar e processar</Button>
-            </form>
+            <SessionCreateForm clients={clientRows.map((c) => ({ id: c.id, name: c.name }))} />
           )}
         </Card>
         <Card>
@@ -74,7 +42,7 @@ export default async function SessionsPage() {
           <div className="mt-4 grid gap-3">
             {sessionRows.length === 0 ? (
               <p className="text-sm text-slate-500">
-                Nenhuma sessao ainda. Cole uma transcricao a esquerda para gerar o primeiro diagnostico.
+                Nenhuma sessao ainda. Use o gravador ao lado para iniciar o primeiro registro.
               </p>
             ) : (
               sessionRows.map((session) => (

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="ORBE">
+  <rect width="512" height="512" rx="96" fill="#012245"/>
+  <circle cx="256" cy="256" r="132" fill="none" stroke="#c8a04c" stroke-width="28"/>
+  <circle cx="256" cy="256" r="52" fill="#2e7271"/>
+  <text x="256" y="430" text-anchor="middle" font-family="Georgia, serif" font-size="48" fill="#e0c88a">ORBE</text>
+</svg>

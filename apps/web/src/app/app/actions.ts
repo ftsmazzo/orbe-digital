@@ -12,10 +12,12 @@ import {
   diagnostics,
   goals,
   indicators,
+  marketInsights,
   proposals,
   reports,
 } from "@/lib/db";
 import { extractDiagnosticFromTranscript, mockTranscript } from "@/lib/agents/extract";
+import { researchMarket, type MarketScope } from "@/lib/agents/market-research";
 import { generateProposalHtml } from "@/lib/agents/proposal";
 import { generateReportHtml } from "@/lib/agents/report";
 import { getCurrentOrg } from "@/lib/org";
@@ -324,6 +326,60 @@ export async function createIndicator(clientId: string, formData: FormData) {
     planned: monthlyJson(formData, "planned"),
     actual: monthlyJson(formData, "actual"),
   });
+  revalidatePath(`/app/clients/${clientId}/planning`);
+  revalidatePath(`/app/clients/${clientId}/dashboard`);
+}
+
+export async function runMarketResearch(clientId: string, formData: FormData) {
+  const scope = (text(formData, "scope") as MarketScope) ?? "regional";
+  if (scope !== "regional" && scope !== "global") return;
+
+  const { orgId } = await getCurrentOrg();
+  const [client] = await db
+    .select()
+    .from(clients)
+    .where(and(eq(clients.id, clientId), eq(clients.organizationId, orgId)))
+    .limit(1);
+  if (!client) return;
+
+  const research = researchMarket({
+    clientName: client.name,
+    sector: text(formData, "sector") ?? client.sector,
+    city: client.city,
+    scope,
+    region: text(formData, "region") ?? client.city,
+  });
+
+  await db.insert(marketInsights).values({
+    organizationId: orgId,
+    clientId,
+    scope: research.scope,
+    region: research.region,
+    sector: research.sector,
+    summary: research.summary,
+    payload: research.payload,
+  });
+
+  const applyIndicators = formData.get("applyIndicators") === "on";
+  if (applyIndicators) {
+    const year = new Date().getFullYear();
+    for (const item of research.payload.indicadores_sugeridos) {
+      const perspective = item.perspectiva as Perspective;
+      if (!PERSPECTIVES.includes(perspective)) continue;
+      await db.insert(indicators).values({
+        organizationId: orgId,
+        clientId,
+        perspective,
+        name: item.nome,
+        direction: "aumentar",
+        unit: item.unidade,
+        year,
+        planned: {},
+        actual: {},
+      });
+    }
+  }
+
   revalidatePath(`/app/clients/${clientId}/planning`);
   revalidatePath(`/app/clients/${clientId}/dashboard`);
 }

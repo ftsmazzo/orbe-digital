@@ -280,3 +280,20 @@ export const proposals = pgTable("proposals", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
+
+/** Pesquisa de mercado da fase R (Resultar) — regional ou global. */
+export const marketInsights = pgTable("market_insights", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  organizationId: uuid("organization_id")
+    .notNull()
+    .references(() => organizations.id, { onDelete: "cascade" }),
+  clientId: uuid("client_id")
+    .notNull()
+    .references(() => clients.id, { onDelete: "cascade" }),
+  scope: text("scope").notNull(),
+  region: text("region"),
+  sector: text("sector"),
+  summary: text("summary").notNull(),
+  payload: jsonb("payload").$type<Record<string, unknown>>().default({}).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});

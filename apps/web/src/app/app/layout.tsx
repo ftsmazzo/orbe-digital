@@ -39,10 +39,19 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         </div>
       </aside>
       <div className="lg:pl-72">
-        <header className="sticky top-0 z-20 border-b border-[#012245]/10 bg-[#f7f4ee]/90 px-6 py-4 backdrop-blur lg:hidden">
-          <div className="flex items-center justify-between">
-            <Link href="/app/clients" className="font-semibold text-[#012245]">ORBE Digital</Link>
-            <Link href="/app/clients" className="text-sm text-[#2e7271]">Clientes</Link>
+        <header className="sticky top-0 z-20 border-b border-[#012245]/10 bg-[#f7f4ee]/90 px-4 py-3 backdrop-blur lg:hidden">
+          <div className="flex items-center justify-between gap-3">
+            <Link href="/app/clients" className="font-semibold text-[#012245]">
+              ORBE Digital
+            </Link>
+            <nav className="flex items-center gap-3 text-sm">
+              <Link href="/app/sessions" className="font-semibold text-[#c0392b]">
+                Gravador
+              </Link>
+              <Link href="/app/clients" className="text-[#2e7271]">
+                Clientes
+              </Link>
+            </nav>
           </div>
         </header>
         <main className="mx-auto max-w-7xl px-6 py-8">{children}</main>
