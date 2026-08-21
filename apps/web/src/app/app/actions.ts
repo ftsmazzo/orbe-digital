@@ -106,6 +106,38 @@ export async function updateClientStage(clientId: string, formData: FormData) {
   revalidatePath("/app/clients");
 }
 
+async function persistTranscriptAndDiagnostic(opts: {
+  orgId: string;
+  clientId: string;
+  sessionId: string;
+  clientName: string;
+  transcript: string;
+}) {
+  const extracted = extractDiagnosticFromTranscript(opts.transcript, opts.clientName);
+  await db
+    .update(consultingSessions)
+    .set({
+      transcriptRaw: opts.transcript,
+      transcriptSegments: [{ speaker: "ORBE", text: opts.transcript }],
+      status: "pronto",
+      errorMessage: null,
+      updatedAt: new Date(),
+    })
+    .where(eq(consultingSessions.id, opts.sessionId));
+
+  await db.insert(diagnostics).values({
+    organizationId: opts.orgId,
+    clientId: opts.clientId,
+    sessionId: opts.sessionId,
+    payload: extracted.payload,
+    maturity: extracted.maturity,
+    gaps: extracted.gaps,
+    priorities: extracted.priorities,
+    risks: extracted.risks,
+    openQuestions: extracted.openQuestions,
+  });
+}
+
 export async function createSession(formData: FormData) {
   const { orgId, userId } = await getCurrentOrg();
   const clientId = text(formData, "clientId");
@@ -120,6 +152,7 @@ export async function createSession(formData: FormData) {
 
   const audio = formData.get("audio");
   const hasAudio = audio instanceof File && audio.size > 0;
+  const pastedTranscript = text(formData, "transcript");
   const [session] = await db
     .insert(consultingSessions)
     .values({
@@ -128,12 +161,20 @@ export async function createSession(formData: FormData) {
       title: text(formData, "title") ?? `Sessao ORBE - ${client.name}`,
       consentGiven: formData.get("consentGiven") === "on",
       consentAt: formData.get("consentGiven") === "on" ? new Date() : undefined,
-      status: hasAudio ? "processando" : "gravando",
+      status: hasAudio || pastedTranscript ? "processando" : "gravando",
       createdById: userId,
     })
     .returning();
 
-  if (hasAudio) {
+  if (pastedTranscript) {
+    await persistTranscriptAndDiagnostic({
+      orgId,
+      clientId,
+      sessionId: session.id,
+      clientName: client.name,
+      transcript: pastedTranscript,
+    });
+  } else if (hasAudio) {
     const stored = await putObject(audio, `sessions/${session.id}`);
     await db
       .update(consultingSessions)
@@ -158,27 +199,12 @@ export async function createSession(formData: FormData) {
         }),
       });
     } else {
-      const transcript = mockTranscript(client.name);
-      const extracted = extractDiagnosticFromTranscript(transcript, client.name);
-      await db
-        .update(consultingSessions)
-        .set({
-          transcriptRaw: transcript,
-          transcriptSegments: [{ speaker: "ORBE", text: transcript }],
-          status: "pronto",
-          updatedAt: new Date(),
-        })
-        .where(eq(consultingSessions.id, session.id));
-      await db.insert(diagnostics).values({
-        organizationId: orgId,
+      await persistTranscriptAndDiagnostic({
+        orgId,
         clientId,
         sessionId: session.id,
-        payload: extracted.payload,
-        maturity: extracted.maturity,
-        gaps: extracted.gaps,
-        priorities: extracted.priorities,
-        risks: extracted.risks,
-        openQuestions: extracted.openQuestions,
+        clientName: client.name,
+        transcript: mockTranscript(client.name),
       });
     }
   }
@@ -191,6 +217,38 @@ export async function createSession(formData: FormData) {
   revalidatePath("/app/sessions");
   revalidatePath(`/app/clients/${clientId}`);
   redirect(`/app/sessions/${session.id}`);
+}
+
+export async function applySessionTranscript(sessionId: string, formData: FormData) {
+  const { orgId } = await getCurrentOrg();
+  const transcript = text(formData, "transcript");
+  if (!transcript) return;
+
+  const [session] = await db
+    .select()
+    .from(consultingSessions)
+    .where(and(eq(consultingSessions.id, sessionId), eq(consultingSessions.organizationId, orgId)))
+    .limit(1);
+  if (!session) return;
+
+  const [client] = await db
+    .select()
+    .from(clients)
+    .where(and(eq(clients.id, session.clientId), eq(clients.organizationId, orgId)))
+    .limit(1);
+  if (!client) return;
+
+  await persistTranscriptAndDiagnostic({
+    orgId,
+    clientId: session.clientId,
+    sessionId,
+    clientName: client.name,
+    transcript,
+  });
+
+  revalidatePath(`/app/sessions/${sessionId}`);
+  revalidatePath("/app/diagnostics");
+  revalidatePath(`/app/clients/${session.clientId}`);
 }
 
 export async function saveDiagnostic(diagnosticId: string, formData: FormData) {
