@@ -88,60 +88,87 @@ export async function POST(request: Request) {
         openQuestions: extracted.openQuestions,
       });
     } else if (hasAudio && audio instanceof File) {
-      const stored = await putObject(audio, `sessions/${session.id}`);
-      await db
-        .update(consultingSessions)
-        .set({
-          audioKey: stored.key,
-          audioUrl: stored.url,
-          mimeType: audio.type || "audio/mp4",
-          status: "processando",
-          updatedAt: new Date(),
-        })
-        .where(eq(consultingSessions.id, session.id));
-
-      if (process.env.N8N_WEBHOOK_STT) {
-        const baseUrl = process.env.BETTER_AUTH_URL ?? "";
-        const callbackSecret = process.env.N8N_CALLBACK_SECRET ?? "dev-callback";
-        await fetch(process.env.N8N_WEBHOOK_STT, {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            sessionId: session.id,
-            clientId,
-            clientName: client.name,
-            audioKey: stored.key,
-            mimeType: audio.type || "audio/mp4",
-            callbackSecret,
-            audioDownloadUrl: `${baseUrl}/api/internal/sessions/${session.id}/audio`,
-            callbackUrl: `${baseUrl}/api/webhooks/n8n/session`,
-          }),
-        }).catch(() => {
-          // nao derruba a sessao se o webhook falhar; fica em processando
-        });
-      } else {
-        const transcript = mockTranscript(client.name);
-        const extracted = extractDiagnosticFromTranscript(transcript, client.name);
+      try {
+        const stored = await putObject(audio, `sessions/${session.id}`);
         await db
           .update(consultingSessions)
           .set({
-            transcriptRaw: transcript,
-            transcriptSegments: [{ speaker: "ORBE", text: transcript }],
-            status: "pronto",
+            audioKey: stored.key,
+            audioUrl: stored.url,
+            mimeType: audio.type || "audio/mp4",
+            status: "processando",
             updatedAt: new Date(),
           })
           .where(eq(consultingSessions.id, session.id));
-        await db.insert(diagnostics).values({
-          organizationId: orgId,
-          clientId,
-          sessionId: session.id,
-          payload: extracted.payload,
-          maturity: extracted.maturity,
-          gaps: extracted.gaps,
-          priorities: extracted.priorities,
-          risks: extracted.risks,
-          openQuestions: extracted.openQuestions,
-        });
+
+        if (process.env.N8N_WEBHOOK_STT) {
+          const baseUrl = process.env.BETTER_AUTH_URL ?? "";
+          const callbackSecret = process.env.N8N_CALLBACK_SECRET ?? "dev-callback";
+          const webhookRes = await fetch(process.env.N8N_WEBHOOK_STT, {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+              sessionId: session.id,
+              clientId,
+              clientName: client.name,
+              audioKey: stored.key,
+              mimeType: audio.type || "audio/mp4",
+              callbackSecret,
+              audioDownloadUrl: `${baseUrl}/api/internal/sessions/${session.id}/audio`,
+              callbackUrl: `${baseUrl}/api/webhooks/n8n/session`,
+            }),
+          });
+          if (!webhookRes.ok) {
+            const detail = await webhookRes.text().catch(() => "");
+            await db
+              .update(consultingSessions)
+              .set({
+                status: "erro",
+                errorMessage: `Falha ao disparar STT (${webhookRes.status}). ${detail.slice(0, 200)}`,
+                updatedAt: new Date(),
+              })
+              .where(eq(consultingSessions.id, session.id));
+            return NextResponse.json(
+              { error: "Audio salvo, mas o STT nao aceitou o pedido. Tente de novo.", id: session.id },
+              { status: 502 },
+            );
+          }
+        } else {
+          const transcript = mockTranscript(client.name);
+          const extracted = extractDiagnosticFromTranscript(transcript, client.name);
+          await db
+            .update(consultingSessions)
+            .set({
+              transcriptRaw: transcript,
+              transcriptSegments: [{ speaker: "ORBE", text: transcript }],
+              status: "pronto",
+              updatedAt: new Date(),
+            })
+            .where(eq(consultingSessions.id, session.id));
+          await db.insert(diagnostics).values({
+            organizationId: orgId,
+            clientId,
+            sessionId: session.id,
+            payload: extracted.payload,
+            maturity: extracted.maturity,
+            gaps: extracted.gaps,
+            priorities: extracted.priorities,
+            risks: extracted.risks,
+            openQuestions: extracted.openQuestions,
+          });
+        }
+      } catch (uploadError) {
+        const message =
+          uploadError instanceof Error ? uploadError.message : "Falha ao gravar/enviar audio.";
+        await db
+          .update(consultingSessions)
+          .set({
+            status: "erro",
+            errorMessage: message,
+            updatedAt: new Date(),
+          })
+          .where(eq(consultingSessions.id, session.id));
+        return NextResponse.json({ error: message, id: session.id }, { status: 500 });
       }
     }
 
@@ -150,7 +177,12 @@ export async function POST(request: Request) {
       .set({ stage: "sessao", updatedAt: new Date() })
       .where(and(eq(clients.id, clientId), eq(clients.organizationId, orgId)));
 
-    return NextResponse.json(session, { status: 201 });
+    const [fresh] = await db
+      .select()
+      .from(consultingSessions)
+      .where(eq(consultingSessions.id, session.id))
+      .limit(1);
+    return NextResponse.json(fresh ?? session, { status: 201 });
   } catch (error) {
     console.error("[POST /api/sessions]", error);
     return NextResponse.json(

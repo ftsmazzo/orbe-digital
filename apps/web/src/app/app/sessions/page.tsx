@@ -3,7 +3,7 @@ import { desc, eq } from "drizzle-orm";
 import { Card, PageHeader } from "@/components/ui";
 import { SessionCreateForm } from "@/components/SessionCreateForm";
 import { clients, consultingSessions, db } from "@/lib/db";
-import { formatDateTime } from "@/lib/format";
+import { formatDateTime, SESSION_STATUS_LABEL } from "@/lib/format";
 import { getCurrentOrg } from "@/lib/org";
 
 export default async function SessionsPage() {
@@ -54,10 +54,13 @@ export default async function SessionsPage() {
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <strong className="text-[#012245]">{session.title}</strong>
                     <span className="rounded-full bg-[#2e7271]/10 px-3 py-1 text-xs font-semibold text-[#2e7271]">
-                      {session.status}
+                      {SESSION_STATUS_LABEL[session.status] ?? session.status}
                     </span>
                   </div>
                   <p className="mt-1 text-sm text-slate-500">{formatDateTime(session.createdAt)}</p>
+                  {session.status === "erro" && session.errorMessage ? (
+                    <p className="mt-1 line-clamp-2 text-xs text-red-700">{session.errorMessage}</p>
+                  ) : null}
                 </Link>
               ))
             )}

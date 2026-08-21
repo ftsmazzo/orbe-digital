@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { and, eq } from "drizzle-orm";
+import { SessionStatusPoller } from "@/components/SessionStatusPoller";
 import { Button, Card, Field, PageHeader, Textarea } from "@/components/ui";
 import { clients, consultingSessions, db, diagnostics } from "@/lib/db";
-import { formatDateTime } from "@/lib/format";
+import { formatDateTime, SESSION_STATUS_LABEL } from "@/lib/format";
 import { getCurrentOrg } from "@/lib/org";
 import { applySessionTranscript } from "../../actions";
 
@@ -25,18 +26,31 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
       .where(and(eq(diagnostics.sessionId, id), eq(diagnostics.organizationId, orgId))),
   ]);
 
+  const statusLabel = SESSION_STATUS_LABEL[session.status] ?? session.status;
+
   return (
     <>
       <PageHeader
         title={session.title}
-        description={`${client?.name ?? "Cliente"} · ${session.status} · ${formatDateTime(session.createdAt)}`}
+        description={`${client?.name ?? "Cliente"} · ${statusLabel} · ${formatDateTime(session.createdAt)}`}
       />
+      <div className="mb-4">
+        <SessionStatusPoller status={session.status} />
+      </div>
+      {session.status === "erro" && session.errorMessage ? (
+        <p className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          {session.errorMessage}
+        </p>
+      ) : null}
       <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
         <div className="grid gap-6">
           <Card>
             <h2 className="text-lg font-semibold text-[#012245]">Transcricao</h2>
             <div className="mt-4 min-h-40 whitespace-pre-wrap rounded-2xl bg-slate-50 p-5 text-sm leading-7 text-slate-700">
-              {session.transcriptRaw ?? "A transcricao ainda nao foi recebida."}
+              {session.transcriptRaw ??
+                (session.status === "processando"
+                  ? "Aguardando Whisper… a pagina atualiza sozinha."
+                  : "A transcricao ainda nao foi recebida.")}
             </div>
           </Card>
           <Card>
