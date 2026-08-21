@@ -43,3 +43,33 @@ export async function getCurrentOrg() {
     userId: session.user.id,
   };
 }
+
+/** Para rotas API: nao redireciona; retorna null se nao autenticado. */
+export async function requireOrg() {
+  const session = await getCurrentSession();
+  if (!session?.user?.id) return null;
+
+  const [membership] = await db
+    .select({
+      id: memberships.id,
+      role: memberships.role,
+      organizationId: memberships.organizationId,
+      organizationName: organizations.name,
+      organizationSlug: organizations.slug,
+      userId: memberships.userId,
+    })
+    .from(memberships)
+    .innerJoin(organizations, eq(organizations.id, memberships.organizationId))
+    .where(eq(memberships.userId, session.user.id))
+    .limit(1);
+
+  if (!membership) return null;
+
+  return {
+    session,
+    membership,
+    orgId: membership.organizationId,
+    orgName: membership.organizationName,
+    userId: session.user.id,
+  };
+}

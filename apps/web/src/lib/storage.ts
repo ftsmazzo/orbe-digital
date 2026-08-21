@@ -3,7 +3,16 @@ import path from "node:path";
 import { S3Client, GetObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
 import { v4 as uuid } from "uuid";
 
-const uploadRoot = path.resolve(process.cwd(), process.env.UPLOAD_DIR ?? "../../.data/uploads");
+function resolveUploadRoot() {
+  const configured = process.env.UPLOAD_DIR;
+  if (configured) {
+    return path.isAbsolute(configured) ? configured : path.resolve(process.cwd(), configured);
+  }
+  // fallback gravável em containers (nextjs user)
+  return path.join("/tmp", "orbe-uploads");
+}
+
+const uploadRoot = resolveUploadRoot();
 
 function safeName(name: string) {
   return name.replace(/[^a-zA-Z0-9._-]/g, "-").toLowerCase();

@@ -1,10 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { SessionRecorder } from "@/components/SessionRecorder";
-import { createSession } from "@/app/app/actions";
 
 type ClientOption = { id: string; name: string };
 
@@ -12,7 +10,7 @@ export function SessionCreateForm({ clients }: { clients: ClientOption[] }) {
   const router = useRouter();
   const [recordingFile, setRecordingFile] = useState<File | null>(null);
   const [error, setError] = useState("");
-  const [pending, startTransition] = useTransition();
+  const [pending, setPending] = useState(false);
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -26,28 +24,57 @@ export function SessionCreateForm({ clients }: { clients: ClientOption[] }) {
       formData.set("audio", recordingFile, recordingFile.name);
     }
 
+    // checkbox: API aceita "on" | "true"
+    if (formData.get("consentGiven") === "on") {
+      formData.set("consentGiven", "true");
+    }
+
+    const hasAudioNow =
+      (formData.get("audio") instanceof File && (formData.get("audio") as File).size > 0) || !!recordingFile;
     const transcript = String(formData.get("transcript") ?? "").trim();
-    if (!hasUpload && !recordingFile && !transcript) {
+    if (!hasAudioNow && !transcript) {
       setError("Grave um audio, envie um arquivo ou cole a transcricao.");
       return;
     }
 
-    startTransition(async () => {
-      try {
-        await createSession(formData);
-        router.refresh();
-      } catch (err) {
-        if (isRedirectError(err)) return;
-        setError("Nao foi possivel criar a sessao. Tente novamente.");
+    if (!formData.get("clientId")) {
+      setError("Selecione um cliente.");
+      return;
+    }
+
+    setPending(true);
+    try {
+      const response = await fetch("/api/sessions", {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      });
+
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        setError(String(payload.error || `Falha ao criar sessao (${response.status}).`));
+        return;
       }
-    });
+
+      const sessionId = payload.id as string | undefined;
+      router.push(sessionId ? `/app/sessions/${sessionId}` : "/app/sessions");
+      router.refresh();
+    } catch {
+      setError("Falha de rede ao criar a sessao. Verifique a conexao e tente de novo.");
+    } finally {
+      setPending(false);
+    }
   }
 
   return (
     <form onSubmit={onSubmit} className="mt-4 grid gap-3">
       <label className="grid gap-1 text-sm font-medium text-slate-700">
         <span>Cliente</span>
-        <select name="clientId" required className="rounded-xl border border-slate-200 px-3 py-2 outline-none focus:border-[#2e7271]">
+        <select
+          name="clientId"
+          required
+          className="rounded-xl border border-slate-200 px-3 py-2 outline-none focus:border-[#2e7271]"
+        >
           <option value="">Selecione</option>
           {clients.map((client) => (
             <option key={client.id} value={client.id}>
@@ -68,9 +95,7 @@ export function SessionCreateForm({ clients }: { clients: ClientOption[] }) {
 
       <label className="flex items-start gap-2 text-sm text-slate-700">
         <input name="consentGiven" type="checkbox" required className="mt-1" />
-        <span>
-          Consentimento LGPD: cliente autorizou a gravacao/uso da conversa para diagnostico ORBE.
-        </span>
+        <span>Consentimento LGPD: cliente autorizou a gravacao/uso da conversa para diagnostico ORBE.</span>
       </label>
 
       <SessionRecorder onRecordingReady={setRecordingFile} disabled={pending} />
@@ -91,7 +116,8 @@ export function SessionCreateForm({ clients }: { clients: ClientOption[] }) {
       </label>
 
       <p className="text-xs text-slate-500">
-        Com audio gravado/enviado: dispara STT (n8n/Whisper). Com texto colado: extrai diagnostico na hora.
+        Com audio: dispara STT. Com texto colado: extrai diagnostico na hora.
+        {recordingFile ? ` Gravacao anexada: ${recordingFile.name} (${Math.round(recordingFile.size / 1024)} KB).` : ""}
       </p>
 
       {error ? <p className="text-sm text-red-700">{error}</p> : null}

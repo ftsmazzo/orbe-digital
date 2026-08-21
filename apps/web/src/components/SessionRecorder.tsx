@@ -7,10 +7,19 @@ type Props = {
   disabled?: boolean;
 };
 
+function isIos() {
+  if (typeof navigator === "undefined") return false;
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+}
+
 function pickMimeType() {
-  const candidates = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/ogg"];
+  if (typeof MediaRecorder === "undefined") return "";
+  // iOS Safari: prefer mp4/aac
+  const candidates = isIos()
+    ? ["audio/mp4", "audio/aac", "audio/webm"]
+    : ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/ogg"];
   for (const type of candidates) {
-    if (typeof MediaRecorder !== "undefined" && MediaRecorder.isTypeSupported(type)) return type;
+    if (MediaRecorder.isTypeSupported(type)) return type;
   }
   return "";
 }
@@ -28,62 +37,87 @@ export function SessionRecorder({ onRecordingReady, disabled }: Props) {
   const [elapsedMs, setElapsedMs] = useState(0);
   const [error, setError] = useState("");
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [readyLabel, setReadyLabel] = useState("");
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const chunksRef = useRef<Blob[]>([]);
-  const startedAtRef = useRef<number>(0);
+  const startedAtRef = useRef(0);
   const timerRef = useRef<number | null>(null);
+  const previewUrlRef = useRef<string | null>(null);
 
   useEffect(() => {
-    setSupported(typeof window !== "undefined" && !!navigator.mediaDevices?.getUserMedia && typeof MediaRecorder !== "undefined");
+    setSupported(
+      typeof window !== "undefined" &&
+        !!navigator.mediaDevices?.getUserMedia &&
+        typeof MediaRecorder !== "undefined",
+    );
     return () => {
       if (timerRef.current) window.clearInterval(timerRef.current);
       streamRef.current?.getTracks().forEach((t) => t.stop());
-      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
     };
-  }, [previewUrl]);
+  }, []);
+
+  function setPreview(url: string | null) {
+    if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+    previewUrlRef.current = url;
+    setPreviewUrl(url);
+  }
 
   async function start() {
     setError("");
+    setReadyLabel("");
     onRecordingReady(null);
-    if (previewUrl) {
-      URL.revokeObjectURL(previewUrl);
-      setPreviewUrl(null);
-    }
+    setPreview(null);
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-        },
-      });
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
       const mimeType = pickMimeType();
-      const recorder = mimeType
-        ? new MediaRecorder(stream, { mimeType })
-        : new MediaRecorder(stream);
+      const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
       mediaRecorderRef.current = recorder;
       chunksRef.current = [];
 
-      recorder.ondataavailable = (event) => {
-        if (event.data.size > 0) chunksRef.current.push(event.data);
-      };
+      recorder.addEventListener("dataavailable", (event) => {
+        if (event.data && event.data.size > 0) chunksRef.current.push(event.data);
+      });
 
-      recorder.onstop = () => {
-        const type = recorder.mimeType || mimeType || "audio/webm";
-        const blob = new Blob(chunksRef.current, { type });
-        const ext = type.includes("mp4") ? "m4a" : type.includes("ogg") ? "ogg" : "webm";
-        const file = new File([blob], `sessao-orbe-${Date.now()}.${ext}`, { type });
-        const url = URL.createObjectURL(blob);
-        setPreviewUrl(url);
-        onRecordingReady(file);
-        stream.getTracks().forEach((t) => t.stop());
-        streamRef.current = null;
-      };
+      recorder.addEventListener("error", () => {
+        setError("Falha no gravador do navegador. Tente de novo ou envie um arquivo.");
+        setRecording(false);
+      });
 
-      recorder.start(1000);
+      recorder.addEventListener("stop", () => {
+        try {
+          const type = (recorder.mimeType || mimeType || "audio/mp4").split(";")[0];
+          const blob = new Blob(chunksRef.current, { type });
+          if (!blob.size) {
+            setError("A gravacao ficou vazia. Segure uns segundos falando e pare de novo.");
+            onRecordingReady(null);
+            setReadyLabel("");
+            return;
+          }
+
+          const ext = type.includes("mp4") || type.includes("aac") || type.includes("m4a") ? "m4a" : type.includes("ogg") ? "ogg" : "webm";
+          const file = new File([blob], `sessao-orbe-${Date.now()}.${ext}`, { type: type || "audio/mp4" });
+          const url = URL.createObjectURL(blob);
+          setPreview(url);
+          onRecordingReady(file);
+          setReadyLabel(`Audio pronto (${Math.max(1, Math.round(blob.size / 1024))} KB). Ouça abaixo e depois toque em Criar.`);
+        } finally {
+          stream.getTracks().forEach((t) => t.stop());
+          streamRef.current = null;
+        }
+      });
+
+      // timeslice ajuda Android/Chrome; no iOS pode falhar — tenta com, cai sem
+      try {
+        recorder.start(1000);
+      } catch {
+        recorder.start();
+      }
+
       startedAtRef.current = Date.now();
       setElapsedMs(0);
       setRecording(true);
@@ -91,30 +125,42 @@ export function SessionRecorder({ onRecordingReady, disabled }: Props) {
         setElapsedMs(Date.now() - startedAtRef.current);
       }, 250);
     } catch {
-      setError("Nao foi possivel acessar o microfone. Verifique a permissao do navegador.");
+      setError("Sem acesso ao microfone. No iPhone: Ajustes → Safari → Microfone → permitir, e use HTTPS.");
     }
   }
 
   function stop() {
+    const recorder = mediaRecorderRef.current;
+    if (!recorder || recorder.state === "inactive") {
+      setRecording(false);
+      return;
+    }
     if (timerRef.current) {
       window.clearInterval(timerRef.current);
       timerRef.current = null;
     }
-    mediaRecorderRef.current?.stop();
+    try {
+      if (typeof recorder.requestData === "function" && recorder.state === "recording") {
+        recorder.requestData();
+      }
+    } catch {
+      // ignore
+    }
+    recorder.stop();
     setRecording(false);
   }
 
   function clearRecording() {
-    if (previewUrl) URL.revokeObjectURL(previewUrl);
-    setPreviewUrl(null);
+    setPreview(null);
     onRecordingReady(null);
     setElapsedMs(0);
+    setReadyLabel("");
   }
 
   if (!supported) {
     return (
       <p className="rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-900">
-        Este dispositivo/navegador nao suporta gravacao in-app. Use o upload de audio ou cole a transcricao.
+        Este navegador nao grava audio in-app. Use &quot;Enviar arquivo&quot; ou cole a transcricao.
       </p>
     );
   }
@@ -124,7 +170,7 @@ export function SessionRecorder({ onRecordingReady, disabled }: Props) {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-sm font-semibold text-[#012245]">Gravador da sessao</p>
-          <p className="text-xs text-slate-500">Grave a conversa ao vivo (PWA/celular ou desktop).</p>
+          <p className="text-xs text-slate-500">1) Iniciar · 2) Parar · 3) Ouvir · 4) Criar e processar</p>
         </div>
         <p className={`font-mono text-lg font-semibold ${recording ? "text-red-600" : "text-[#012245]"}`}>
           {formatMs(elapsedMs)}
@@ -137,7 +183,7 @@ export function SessionRecorder({ onRecordingReady, disabled }: Props) {
             type="button"
             disabled={disabled}
             onClick={start}
-            className="rounded-xl bg-[#c0392b] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#a93226] disabled:opacity-50"
+            className="rounded-xl bg-[#c0392b] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#a93226] disabled:opacity-50"
           >
             Iniciar gravacao
           </button>
@@ -145,7 +191,7 @@ export function SessionRecorder({ onRecordingReady, disabled }: Props) {
           <button
             type="button"
             onClick={stop}
-            className="rounded-xl bg-[#012245] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#02315f]"
+            className="rounded-xl bg-[#012245] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#02315f]"
           >
             Parar e usar audio
           </button>
@@ -154,9 +200,9 @@ export function SessionRecorder({ onRecordingReady, disabled }: Props) {
           <button
             type="button"
             onClick={clearRecording}
-            className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-[#012245]"
+            className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-[#012245]"
           >
-            Descartar gravacao
+            Descartar
           </button>
         ) : null}
       </div>
@@ -164,14 +210,15 @@ export function SessionRecorder({ onRecordingReady, disabled }: Props) {
       {recording ? (
         <p className="mt-3 flex items-center gap-2 text-sm font-medium text-red-700">
           <span className="inline-block h-2.5 w-2.5 animate-pulse rounded-full bg-red-600" />
-          Gravando… fale normalmente; o microfone esta ativo.
+          Gravando… fale por alguns segundos e toque em Parar.
         </p>
       ) : null}
 
+      {readyLabel ? <p className="mt-3 text-sm font-medium text-[#2e7271]">{readyLabel}</p> : null}
+
       {previewUrl ? (
         <div className="mt-4">
-          <audio controls src={previewUrl} className="w-full" />
-          <p className="mt-2 text-xs text-slate-500">Audio pronto. Ao criar a sessao, ele sera enviado para transcricao.</p>
+          <audio key={previewUrl} controls playsInline preload="metadata" src={previewUrl} className="w-full" />
         </div>
       ) : null}
 
