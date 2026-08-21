@@ -188,14 +188,20 @@ export async function createSession(formData: FormData) {
       .where(eq(consultingSessions.id, session.id));
 
     if (process.env.N8N_WEBHOOK_STT) {
+      const baseUrl = process.env.BETTER_AUTH_URL ?? process.env.NEXT_PUBLIC_BETTER_AUTH_URL ?? "";
+      const callbackSecret = process.env.N8N_CALLBACK_SECRET ?? "dev-callback";
       await fetch(process.env.N8N_WEBHOOK_STT, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           sessionId: session.id,
           clientId,
+          clientName: client.name,
           audioKey: stored.key,
-          callbackSecret: process.env.N8N_CALLBACK_SECRET,
+          mimeType: audio.type || "audio/webm",
+          callbackSecret,
+          audioDownloadUrl: `${baseUrl}/api/internal/sessions/${session.id}/audio`,
+          callbackUrl: `${baseUrl}/api/webhooks/n8n/session`,
         }),
       });
     } else {

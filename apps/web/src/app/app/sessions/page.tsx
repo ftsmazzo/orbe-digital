@@ -63,7 +63,7 @@ export default async function SessionsPage() {
                 <Input name="audio" type="file" accept="audio/*,video/*" />
               </Field>
               <p className="text-xs text-slate-500">
-                Sem n8n STT, o caminho mais util e colar a transcricao. Com audio e sem webhook, o app usa mock.
+                Com audio: dispara STT via n8n (Whisper). Sem audio: cole a transcricao acima. Sem webhook, o audio usa mock.
               </p>
               <Button>Criar e processar</Button>
             </form>

@@ -32,15 +32,22 @@ postgresql://orbe:OrbePg2026Secure!@46.62.130.249:15432/orbe
 ```
 DATABASE_URL=postgresql://orbe:OrbePg2026Secure!@orbe_orbe-postgres:5432/orbe
 BETTER_AUTH_SECRET=<gerar-32-chars>
-BETTER_AUTH_URL=https://<dominio-app>
-STORAGE_MODE=minio
-MINIO_ENDPOINT=http://orbe_orbe-minio:9000
-MINIO_ACCESS_KEY=orbeadmin
-MINIO_SECRET_KEY=OrbeMinio2026Secure
-MINIO_BUCKET=orbe
-N8N_WEBHOOK_STT=https://<dominio-n8n>/webhook/orbe-stt
-N8N_CALLBACK_SECRET=<shared-secret>
+BETTER_AUTH_URL=https://orbe-app.kxryyk.easypanel.host
+STORAGE_MODE=local
+UPLOAD_DIR=/app/.data/uploads
+N8N_WEBHOOK_STT=https://pazotti-n8n.kxryyk.easypanel.host/webhook/45eae047-9180-4cbe-a8f8-a4c37ea67d4c/orbe-stt
+N8N_CALLBACK_SECRET=orbe-callback-secret
 ```
+
+## Workflow STT (n8n)
+
+- Nome: **ORBE — STT Sessao**
+- Editor: https://pazotti-n8n.kxryyk.easypanel.host/workflow/tXFEYux7CaDfsiTZ
+- Webhook produção: `.../webhook/45eae047-9180-4cbe-a8f8-a4c37ea67d4c/orbe-stt`
+- Fluxo: webhook → baixar áudio da app → Whisper → callback `/api/webhooks/n8n/session`
+- Download interno: `GET /api/internal/sessions/:id/audio` (header `x-orbe-callback-secret`)
+
+> Nota: o workflow está no n8n Pazotti (já com OpenAI). O `orbe-n8n` no EasyPanel ficou com owner criado para migrar depois.
 
 ## Local
 
