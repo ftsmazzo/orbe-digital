@@ -8,6 +8,18 @@ function authorized(request: Request) {
   return secret === (process.env.N8N_CALLBACK_SECRET ?? "dev-callback");
 }
 
+/** Whisper/OpenAI valida pelo nome do arquivo — `.audio` é rejeitado. */
+function extensionForMime(mime: string | null | undefined) {
+  const m = (mime || "").toLowerCase().split(";")[0].trim();
+  if (m.includes("webm")) return "webm";
+  if (m.includes("ogg") || m.includes("oga")) return "ogg";
+  if (m.includes("wav")) return "wav";
+  if (m === "audio/mpeg" || m === "audio/mp3" || m.includes("mpga")) return "mp3";
+  if (m.includes("flac")) return "flac";
+  if (m.includes("mp4") || m.includes("m4a") || m.includes("aac")) return "m4a";
+  return "webm";
+}
+
 export async function GET(
   request: Request,
   context: { params: Promise<{ id: string }> },
@@ -32,12 +44,14 @@ export async function GET(
     return NextResponse.json({ error: "Arquivo indisponivel" }, { status: 404 });
   }
 
+  const ext = extensionForMime(session.mimeType);
+  const contentType = session.mimeType || (ext === "m4a" ? "audio/mp4" : `audio/${ext}`);
   const body = Buffer.from(bytes);
   return new NextResponse(body, {
     status: 200,
     headers: {
-      "content-type": session.mimeType || "application/octet-stream",
-      "content-disposition": `attachment; filename="session-${session.id}.audio"`,
+      "content-type": contentType,
+      "content-disposition": `attachment; filename="session-${session.id}.${ext}"`,
       "cache-control": "no-store",
     },
   });
