@@ -35,7 +35,7 @@ BETTER_AUTH_SECRET=<gerar-32-chars>
 BETTER_AUTH_URL=https://orbe-app.kxryyk.easypanel.host
 STORAGE_MODE=local
 UPLOAD_DIR=/app/.data/uploads
-N8N_WEBHOOK_STT=https://pazotti-n8n.kxryyk.easypanel.host/webhook/45eae047-9180-4cbe-a8f8-a4c37ea67d4c/orbe-stt
+N8N_WEBHOOK_STT=https://pazotti-n8n.kxryyk.easypanel.host/webhook/orbe-stt
 N8N_CALLBACK_SECRET=orbe-callback-secret
 ```
 
@@ -43,7 +43,7 @@ N8N_CALLBACK_SECRET=orbe-callback-secret
 
 - Nome: **ORBE — STT Sessao**
 - Editor: https://pazotti-n8n.kxryyk.easypanel.host/workflow/tXFEYux7CaDfsiTZ
-- Webhook produção: `.../webhook/45eae047-9180-4cbe-a8f8-a4c37ea67d4c/orbe-stt`
+- Webhook produção: `https://pazotti-n8n.kxryyk.easypanel.host/webhook/orbe-stt`
 - Fluxo: webhook → baixar áudio da app → Whisper → callback `/api/webhooks/n8n/session`
 - Download interno: `GET /api/internal/sessions/:id/audio` (header `x-orbe-callback-secret`)
 
