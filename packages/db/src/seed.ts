@@ -1,13 +1,42 @@
 import { hashPassword } from "better-auth/crypto";
 import { eq } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
-import { db } from "./index";
-import { accounts, memberships, organizations, users } from "./schema";
+import { betterAuth } from "better-auth";
+import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import {
+  accounts,
+  db,
+  memberships,
+  organizations,
+  sessionsAuth,
+  users,
+  verifications,
+} from "./index";
 
 async function seed() {
-  const orgName = "Daniel Herculis Consultoria";
   const email = "daniel@danielherculis.com.br";
   const password = "orbe-demo-2026";
+
+  const auth = betterAuth({
+    baseURL: process.env.BETTER_AUTH_URL ?? "http://localhost:3000",
+    secret: process.env.BETTER_AUTH_SECRET ?? "orbe-prod-secret-change-me-please-32",
+    database: drizzleAdapter(db, {
+      provider: "pg",
+      schema: {
+        user: users,
+        session: sessionsAuth,
+        account: accounts,
+        verification: verifications,
+      },
+    }),
+    emailAndPassword: { enabled: true },
+  });
+
+  // clear previous auth rows for a clean seed
+  await db.delete(memberships);
+  await db.delete(accounts);
+  await db.delete(sessionsAuth);
+  await db.delete(users);
 
   let [org] = await db
     .select()
@@ -17,67 +46,55 @@ async function seed() {
   if (!org) {
     [org] = await db
       .insert(organizations)
-      .values({ name: orgName, slug: "daniel-herculis" })
+      .values({ name: "Daniel Herculis Consultoria", slug: "daniel-herculis" })
       .returning();
   }
 
-  let [user] = await db.select().from(users).where(eq(users.email, email));
-  if (!user) {
-    const userId = randomUUID();
-    [user] = await db
-      .insert(users)
-      .values({
-        id: userId,
-        name: "Daniel Herculis",
+  try {
+    await auth.api.signUpEmail({
+      body: {
         email,
-        emailVerified: true,
-      })
-      .returning();
-
-    const hashed = await hashPassword(password);
+        password,
+        name: "Daniel Herculis",
+      },
+    });
+  } catch {
+    // fallback manual insert if API signup fails in CLI context
+    const userId = randomUUID();
+    await db.insert(users).values({
+      id: userId,
+      name: "Daniel Herculis",
+      email,
+      emailVerified: true,
+    });
     await db.insert(accounts).values({
       id: randomUUID(),
-      accountId: user.id,
+      accountId: userId,
       providerId: "credential",
-      userId: user.id,
-      password: hashed,
-    });
-  } else {
-    const hashed = await hashPassword(password);
-    const existing = await db.select().from(accounts).where(eq(accounts.userId, user.id));
-    if (existing[0]) {
-      await db
-        .update(accounts)
-        .set({ password: hashed, updatedAt: new Date() })
-        .where(eq(accounts.id, existing[0].id));
-    } else {
-      await db.insert(accounts).values({
-        id: randomUUID(),
-        accountId: user.id,
-        providerId: "credential",
-        userId: user.id,
-        password: hashed,
-      });
-    }
-  }
-
-  const [membership] = await db
-    .select()
-    .from(memberships)
-    .where(eq(memberships.userId, user.id));
-
-  if (!membership) {
-    await db.insert(memberships).values({
-      organizationId: org.id,
-      userId: user.id,
-      role: "owner",
+      issuer: "local:credential",
+      userId,
+      password: await hashPassword(password),
     });
   }
+
+  const [user] = await db.select().from(users).where(eq(users.email, email));
+  if (!user) throw new Error("User not created");
+
+  await db.insert(memberships).values({
+    organizationId: org.id,
+    userId: user.id,
+    role: "owner",
+  });
+
+  const signedIn = await auth.api.signInEmail({
+    body: { email, password },
+  });
 
   console.log("Seed OK");
   console.log(`  Org: ${org.name}`);
   console.log(`  Login: ${email}`);
   console.log(`  Senha: ${password}`);
+  console.log(`  SignIn: ${signedIn.user?.email}`);
   process.exit(0);
 }
 
