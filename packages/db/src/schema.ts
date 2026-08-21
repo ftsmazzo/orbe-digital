@@ -49,8 +49,9 @@ export const organizations = pgTable("organizations", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
-export const users = pgTable("users", {
-  id: uuid("id").defaultRandom().primaryKey(),
+/** Better Auth tables — IDs must be text (not uuid). */
+export const users = pgTable("user", {
+  id: text("id").primaryKey(),
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
   emailVerified: boolean("email_verified").default(false).notNull(),
@@ -59,24 +60,24 @@ export const users = pgTable("users", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
-export const sessionsAuth = pgTable("sessions_auth", {
-  id: uuid("id").defaultRandom().primaryKey(),
+export const sessionsAuth = pgTable("session", {
+  id: text("id").primaryKey(),
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
   token: text("token").notNull().unique(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   ipAddress: text("ip_address"),
   userAgent: text("user_agent"),
-  userId: uuid("user_id")
+  userId: text("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
 });
 
-export const accounts = pgTable("accounts", {
-  id: uuid("id").defaultRandom().primaryKey(),
+export const accounts = pgTable("account", {
+  id: text("id").primaryKey(),
   accountId: text("account_id").notNull(),
   providerId: text("provider_id").notNull(),
-  userId: uuid("user_id")
+  userId: text("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
   accessToken: text("access_token"),
@@ -90,8 +91,8 @@ export const accounts = pgTable("accounts", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
-export const verifications = pgTable("verifications", {
-  id: uuid("id").defaultRandom().primaryKey(),
+export const verifications = pgTable("verification", {
+  id: text("id").primaryKey(),
   identifier: text("identifier").notNull(),
   value: text("value").notNull(),
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
@@ -104,13 +105,12 @@ export const memberships = pgTable("memberships", {
   organizationId: uuid("organization_id")
     .notNull()
     .references(() => organizations.id, { onDelete: "cascade" }),
-  userId: uuid("user_id")
+  userId: text("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
   role: text("role").default("owner").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
-
 export const clients = pgTable("clients", {
   id: uuid("id").defaultRandom().primaryKey(),
   organizationId: uuid("organization_id")
@@ -149,7 +149,7 @@ export const consultingSessions = pgTable("consulting_sessions", {
   >(),
   status: sessionStatusEnum("status").default("gravando").notNull(),
   errorMessage: text("error_message"),
-  createdById: uuid("created_by_id").references(() => users.id),
+  createdById: text("created_by_id").references(() => users.id),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
@@ -173,7 +173,7 @@ export const diagnostics = pgTable("diagnostics", {
   openQuestions: jsonb("open_questions").$type<string[]>().default([]).notNull(),
   validated: boolean("validated").default(false).notNull(),
   validatedAt: timestamp("validated_at", { withTimezone: true }),
-  validatedById: uuid("validated_by_id").references(() => users.id),
+  validatedById: text("validated_by_id").references(() => users.id),
   version: integer("version").default(1).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),

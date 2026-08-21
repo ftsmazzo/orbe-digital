@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { FormEvent, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 
@@ -10,19 +10,21 @@ export function LoginForm() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  async function onSubmit(formData: FormData) {
+  async function onSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
     setLoading(true);
     setError("");
 
+    const formData = new FormData(event.currentTarget);
     const result = await authClient.signIn.email({
-      email: String(formData.get("email") ?? ""),
+      email: String(formData.get("email") ?? "").trim(),
       password: String(formData.get("password") ?? ""),
     });
 
     setLoading(false);
 
     if (result.error) {
-      setError("E-mail ou senha invalidos.");
+      setError(result.error.message || "E-mail ou senha inválidos.");
       return;
     }
 
@@ -31,7 +33,7 @@ export function LoginForm() {
   }
 
   return (
-    <form action={onSubmit} className="space-y-4">
+    <form onSubmit={onSubmit} className="space-y-4">
       <label className="block">
         <span className="text-sm font-medium text-slate-700">E-mail</span>
         <input
