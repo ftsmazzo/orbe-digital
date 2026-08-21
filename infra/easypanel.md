@@ -1,21 +1,27 @@
 # EasyPanel — projeto `orbe`
 
-## Serviços
+## Serviços (projeto `orbe`)
 
-| Serviço | Tipo | Função |
-|---------|------|--------|
-| `orbe-postgres` | PostgreSQL 17 | Banco principal |
-| `orbe-n8n` | App (image) | Agentes / STT / webhooks |
-| `orbe-minio` | App (image) | Áudio e PDFs |
-| `orbe-app` | App (GitHub) | Next.js — criar após push do repo |
+| Serviço | Tipo | Domínio / acesso |
+|---------|------|------------------|
+| `orbe-postgres` | PostgreSQL 17 | Interno `orbe_orbe-postgres:5432` · exposto `46.62.130.249:15432` |
+| `orbe-n8n` | App image | https://orbe-n8n.kxryyk.easypanel.host |
+| `orbe-minio` | App image | https://orbe-minio.kxryyk.easypanel.host · console `orbe-minio-console...` |
+| `orbe-app` | App GitHub | https://orbe-app.kxryyk.easypanel.host (requer GitHub App EasyPanel no repo privado) |
 
-## Credenciais Postgres (rede interna EasyPanel)
+Repo: https://github.com/ftsmazzo/orbe-digital
 
+## Credenciais Postgres
+
+Interna (app na VPS):
 ```
 postgresql://orbe:OrbePg2026Secure!@orbe_orbe-postgres:5432/orbe
 ```
 
-Host interno típico: `{project}_{service}` → `orbe_orbe-postgres`.
+Externa (dev local):
+```
+postgresql://orbe:OrbePg2026Secure!@46.62.130.249:15432/orbe
+```
 
 ## Env sugerido para `orbe-app`
 
