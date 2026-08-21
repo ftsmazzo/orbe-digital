@@ -59,10 +59,16 @@ export default async function PlanningPage({ params }: { params: Promise<{ id: s
               <Field label="Setor">
                 <Input name="sector" defaultValue={client.sector ?? ""} placeholder="Ex.: Moda / Varejo" />
               </Field>
+              <Field label="Site do cliente (opcional)">
+                <Input name="website" placeholder="https://exemplo.com.br" />
+              </Field>
               <label className="flex items-center gap-2 text-sm text-slate-700">
                 <input name="applyIndicators" type="checkbox" defaultChecked />
                 Criar indicadores sugeridos automaticamente
               </label>
+              <p className="text-xs text-amber-800">
+                Apify + Claude geram rascunho com fontes. Valide numeros com o cliente antes de apresentar.
+              </p>
               <Button>Rodar pesquisa</Button>
             </form>
           </Card>
@@ -151,6 +157,7 @@ export default async function PlanningPage({ params }: { params: Promise<{ id: s
                     contexto_mercado?: string[];
                     oportunidades?: string[];
                     personalizacao_comercial?: string[];
+                    fontes_orientacao?: string[];
                     indicadores_sugeridos?: { nome: string; perspectiva: string; referencia: string }[];
                   };
                   return (
@@ -168,6 +175,18 @@ export default async function PlanningPage({ params }: { params: Promise<{ id: s
                           <li key={item}>{item}</li>
                         ))}
                       </ul>
+                      {(payload.fontes_orientacao ?? []).length ? (
+                        <div className="mt-3 rounded-xl border border-slate-100 bg-slate-50 p-3 text-xs text-slate-600">
+                          <p className="font-semibold text-[#012245]">Fontes</p>
+                          <ul className="mt-1 list-disc space-y-1 pl-4">
+                            {payload.fontes_orientacao!.slice(0, 8).map((item) => (
+                              <li key={item} className="break-all">
+                                {item}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      ) : null}
                       {(payload.personalizacao_comercial ?? []).length ? (
                         <div className="mt-3 rounded-xl bg-[#f7f4ee] p-3 text-sm text-slate-700">
                           <p className="font-semibold text-[#012245]">Comercial personalizado</p>

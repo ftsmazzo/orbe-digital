@@ -6,7 +6,7 @@ import { Button, Card, Field, PageHeader, Textarea } from "@/components/ui";
 import { clients, consultingSessions, db, diagnostics } from "@/lib/db";
 import { formatDateTime, SESSION_STATUS_LABEL } from "@/lib/format";
 import { getCurrentOrg } from "@/lib/org";
-import { applySessionTranscript } from "../../actions";
+import { applySessionTranscript, reextractSessionDiagnostic } from "../../actions";
 
 export default async function SessionDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -83,7 +83,12 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
             <p className="mt-2 break-all text-sm text-slate-600">{session.audioUrl ?? "Nenhum arquivo enviado."}</p>
           </Card>
           <Card>
-            <h2 className="font-semibold text-[#012245]">Diagnostico gerado</h2>
+            <h2 className="text-lg font-semibold text-[#012245]">Diagnostico gerado</h2>
+            {session.transcriptRaw ? (
+              <form action={reextractSessionDiagnostic.bind(null, session.id)} className="mt-3">
+                <Button type="submit">Reextrair com Claude</Button>
+              </form>
+            ) : null}
             {diagnosticRows.length ? (
               diagnosticRows.map((diagnostic) => (
                 <Link
@@ -96,7 +101,9 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
                 </Link>
               ))
             ) : (
-              <p className="mt-2 text-sm text-slate-500">Cole a transcricao ao lado para gerar o diagnostico.</p>
+              <p className="mt-2 text-sm text-slate-500">
+                Apos a transcricao, o diagnostico Claude aparece aqui automaticamente.
+              </p>
             )}
           </Card>
         </div>

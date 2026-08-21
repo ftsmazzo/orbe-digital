@@ -1,4 +1,6 @@
 import type { DiagnosticPayload } from "@orbe/shared";
+import { extractDiagnosticWithClaude, type ExtractedDiagnostic } from "@/lib/agents/extract-claude";
+import { hasAnthropicKey } from "@/lib/ai/claude";
 
 function includesAny(text: string, words: string[]) {
   return words.some((word) => text.includes(word));
@@ -12,7 +14,7 @@ export function mockTranscript(clientName: string) {
   return `Sessao consultiva ORBE com ${clientName}. O cliente relatou desafios de controle financeiro, rotina comercial, padronizacao de processos e acompanhamento de indicadores. Tambem citou oportunidades de organizar metas, definir responsaveis e priorizar a execucao nos proximos meses.`;
 }
 
-export function extractDiagnosticFromTranscript(transcript: string, clientName: string) {
+export function extractDiagnosticHeuristic(transcript: string, clientName: string): ExtractedDiagnostic {
   const text = transcript.toLowerCase();
   const gaps: string[] = [];
   const priorities: string[] = [];
@@ -87,5 +89,21 @@ export function extractDiagnosticFromTranscript(transcript: string, clientName: 
     priorities,
     risks,
     openQuestions,
+    source: "heuristic",
   };
+}
+
+/** Prefer Claude; fallback heuristico se key ausente ou API falhar. */
+export async function extractDiagnosticFromTranscript(
+  transcript: string,
+  clientName: string,
+): Promise<ExtractedDiagnostic> {
+  if (hasAnthropicKey()) {
+    try {
+      return await extractDiagnosticWithClaude(transcript, clientName);
+    } catch (error) {
+      console.error("[extract] Claude falhou, usando heuristica:", error);
+    }
+  }
+  return extractDiagnosticHeuristic(transcript, clientName);
 }

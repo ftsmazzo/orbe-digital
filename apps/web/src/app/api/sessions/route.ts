@@ -66,7 +66,7 @@ export async function POST(request: Request) {
       .returning();
 
     if (pastedTranscript && !hasAudio) {
-      const extracted = extractDiagnosticFromTranscript(pastedTranscript, client.name);
+      const extracted = await extractDiagnosticFromTranscript(pastedTranscript, client.name);
       await db
         .update(consultingSessions)
         .set({
@@ -135,7 +135,7 @@ export async function POST(request: Request) {
           }
         } else {
           const transcript = mockTranscript(client.name);
-          const extracted = extractDiagnosticFromTranscript(transcript, client.name);
+          const extracted = await extractDiagnosticFromTranscript(transcript, client.name);
           await db
             .update(consultingSessions)
             .set({

@@ -22,6 +22,7 @@ export type MarketResearchResult = {
     perguntas_validadas: string[];
     fontes_orientacao: string[];
     personalizacao_comercial: string[];
+    coleta?: Record<string, unknown>;
   };
 };
 

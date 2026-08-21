@@ -17,11 +17,12 @@ import {
   reports,
 } from "@/lib/db";
 import { extractDiagnosticFromTranscript, mockTranscript } from "@/lib/agents/extract";
-import { researchMarket, type MarketScope } from "@/lib/agents/market-research";
+import { researchMarketEnriched, type MarketScope } from "@/lib/agents/market-research-apify";
 import { generateProposalHtml } from "@/lib/agents/proposal";
 import { generateReportHtml } from "@/lib/agents/report";
 import { getCurrentOrg } from "@/lib/org";
 import { putObject } from "@/lib/storage";
+import type { DiagnosticPayload } from "@orbe/shared";
 
 function text(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -115,7 +116,7 @@ async function persistTranscriptAndDiagnostic(opts: {
   clientName: string;
   transcript: string;
 }) {
-  const extracted = extractDiagnosticFromTranscript(opts.transcript, opts.clientName);
+  const extracted = await extractDiagnosticFromTranscript(opts.transcript, opts.clientName);
   await db
     .update(consultingSessions)
     .set({
@@ -259,13 +260,86 @@ export async function applySessionTranscript(sessionId: string, formData: FormDa
   revalidatePath(`/app/clients/${session.clientId}`);
 }
 
+export async function reextractSessionDiagnostic(sessionId: string) {
+  const { orgId } = await getCurrentOrg();
+  const [session] = await db
+    .select()
+    .from(consultingSessions)
+    .where(and(eq(consultingSessions.id, sessionId), eq(consultingSessions.organizationId, orgId)))
+    .limit(1);
+  if (!session?.transcriptRaw) return;
+
+  const [client] = await db
+    .select()
+    .from(clients)
+    .where(and(eq(clients.id, session.clientId), eq(clients.organizationId, orgId)))
+    .limit(1);
+  if (!client) return;
+
+  const extracted = await extractDiagnosticFromTranscript(session.transcriptRaw, client.name);
+
+  const [existing] = await db
+    .select()
+    .from(diagnostics)
+    .where(and(eq(diagnostics.sessionId, sessionId), eq(diagnostics.organizationId, orgId)))
+    .orderBy(desc(diagnostics.createdAt))
+    .limit(1);
+
+  if (existing && !existing.validated) {
+    await db
+      .update(diagnostics)
+      .set({
+        payload: extracted.payload,
+        maturity: extracted.maturity,
+        gaps: extracted.gaps,
+        priorities: extracted.priorities,
+        risks: extracted.risks,
+        openQuestions: extracted.openQuestions,
+        version: (existing.version ?? 1) + 1,
+        updatedAt: new Date(),
+      })
+      .where(eq(diagnostics.id, existing.id));
+    revalidatePath(`/app/diagnostics/${existing.id}`);
+  } else {
+    const [created] = await db
+      .insert(diagnostics)
+      .values({
+        organizationId: orgId,
+        clientId: session.clientId,
+        sessionId,
+        payload: extracted.payload,
+        maturity: extracted.maturity,
+        gaps: extracted.gaps,
+        priorities: extracted.priorities,
+        risks: extracted.risks,
+        openQuestions: extracted.openQuestions,
+      })
+      .returning();
+    if (created) revalidatePath(`/app/diagnostics/${created.id}`);
+  }
+
+  revalidatePath(`/app/sessions/${sessionId}`);
+  revalidatePath("/app/diagnostics");
+  revalidatePath(`/app/clients/${session.clientId}`);
+}
+
 export async function saveDiagnostic(diagnosticId: string, formData: FormData) {
   const { orgId, userId } = await getCurrentOrg();
-  let payload = {};
-  try {
-    payload = JSON.parse(text(formData, "payload") ?? "{}");
-  } catch {
-    payload = {};
+
+  let payload: DiagnosticPayload = {};
+  const structured = text(formData, "payloadStructured");
+  if (structured) {
+    try {
+      payload = JSON.parse(structured) as DiagnosticPayload;
+    } catch {
+      payload = {};
+    }
+  } else {
+    try {
+      payload = JSON.parse(text(formData, "payload") ?? "{}") as DiagnosticPayload;
+    } catch {
+      payload = {};
+    }
   }
 
   await db
@@ -278,7 +352,9 @@ export async function saveDiagnostic(diagnosticId: string, formData: FormData) {
       risks: lines(text(formData, "risks")),
       openQuestions: lines(text(formData, "openQuestions")),
       version: Number(formData.get("version") ?? 1),
-      validatedById: undefined,
+      validated: false,
+      validatedAt: null,
+      validatedById: null,
       updatedAt: new Date(),
     })
     .where(and(eq(diagnostics.id, diagnosticId), eq(diagnostics.organizationId, orgId)));
@@ -342,12 +418,13 @@ export async function runMarketResearch(clientId: string, formData: FormData) {
     .limit(1);
   if (!client) return;
 
-  const research = researchMarket({
+  const research = await researchMarketEnriched({
     clientName: client.name,
     sector: text(formData, "sector") ?? client.sector,
     city: client.city,
     scope,
     region: text(formData, "region") ?? client.city,
+    website: text(formData, "website"),
   });
 
   await db.insert(marketInsights).values({

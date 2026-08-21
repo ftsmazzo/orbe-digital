@@ -3,6 +3,9 @@ import { eq } from "drizzle-orm";
 import { consultingSessions, db, diagnostics } from "@/lib/db";
 import { extractDiagnosticFromTranscript } from "@/lib/agents/extract";
 
+export const runtime = "nodejs";
+export const maxDuration = 120;
+
 export async function POST(request: Request) {
   const secret = request.headers.get("x-orbe-callback-secret");
   if (secret !== (process.env.N8N_CALLBACK_SECRET ?? "dev-callback")) {
@@ -15,13 +18,14 @@ export async function POST(request: Request) {
   const [session] = await db.select().from(consultingSessions).where(eq(consultingSessions.id, sessionId)).limit(1);
   if (!session) return NextResponse.json({ error: "Sessao nao encontrada" }, { status: 404 });
 
-  const extracted = extractDiagnosticFromTranscript(transcript, body.clientName ?? "Cliente");
+  const extracted = await extractDiagnosticFromTranscript(transcript, body.clientName ?? "Cliente");
   await db
     .update(consultingSessions)
     .set({
       transcriptRaw: transcript,
       transcriptSegments: Array.isArray(body.segments) ? body.segments : [{ speaker: "Cliente", text: transcript }],
       status: "pronto",
+      errorMessage: null,
       updatedAt: new Date(),
     })
     .where(eq(consultingSessions.id, sessionId));
@@ -38,5 +42,5 @@ export async function POST(request: Request) {
     openQuestions: extracted.openQuestions,
   });
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, source: extracted.source });
 }

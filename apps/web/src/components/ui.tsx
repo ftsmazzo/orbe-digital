@@ -17,12 +17,20 @@ export function Card({ children, className = "" }: { children: React.ReactNode; 
   return <section className={`rounded-3xl border border-[#012245]/10 bg-white p-6 shadow-sm ${className}`}>{children}</section>;
 }
 
-export function Button({ children, variant = "primary" }: { children: React.ReactNode; variant?: "primary" | "secondary" }) {
+export function Button({
+  children,
+  variant = "primary",
+  ...props
+}: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "primary" | "secondary" }) {
   const classes =
     variant === "primary"
       ? "bg-[#012245] text-white hover:bg-[#02315f]"
       : "border border-[#012245]/15 bg-white text-[#012245] hover:bg-[#f7f4ee]";
-  return <button className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${classes}`}>{children}</button>;
+  return (
+    <button {...props} className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${classes} ${props.className ?? ""}`}>
+      {children}
+    </button>
+  );
 }
 
 export function LinkButton({ href, children }: { href: string; children: React.ReactNode }) {
