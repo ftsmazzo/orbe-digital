@@ -34,7 +34,7 @@ DATABASE_URL=postgresql://orbe:OrbePg2026Secure!@orbe_orbe-postgres:5432/orbe
 BETTER_AUTH_SECRET=<gerar-32-chars>
 BETTER_AUTH_URL=https://orbe-app.kxryyk.easypanel.host
 STORAGE_MODE=minio
-MINIO_ENDPOINT=http://orbe_orbe-minio:9000
+MINIO_ENDPOINT=https://orbe-minio.kxryyk.easypanel.host
 MINIO_ACCESS_KEY=orbeadmin
 MINIO_SECRET_KEY=OrbeMinio2026Secure
 MINIO_BUCKET=orbe
@@ -44,12 +44,25 @@ N8N_WEBHOOK_STT=https://pazotti-n8n.kxryyk.easypanel.host/webhook/orbe-stt
 N8N_CALLBACK_SECRET=orbe-callback-secret
 ```
 
+> **MinIO / AWS SDK:** nunca use o hostname interno do Docker com underscore
+> (`http://orbe_orbe-minio:9000`) — o SDK S3 responde `Invalid hostname`.
+> Use o domínio público HTTPS acima.
+
 ## MinIO
 
 Comando no EasyPanel (obrigatório o binário `minio`):
 
 ```
 minio server /data --console-address :9001
+```
+
+Env do serviço MinIO:
+
+```
+MINIO_ROOT_USER=orbeadmin
+MINIO_ROOT_PASSWORD=OrbeMinio2026Secure
+MINIO_SERVER_URL=https://orbe-minio.kxryyk.easypanel.host
+MINIO_BROWSER_REDIRECT_URL=https://orbe-minio-console.kxryyk.easypanel.host
 ```
 
 Se usar só `server /data...`, o log fica `server: command not found` e o serviço fica amarelo.
