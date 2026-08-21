@@ -124,12 +124,10 @@ export async function researchMarketEnriched(
       ? [
           `${sector} mercado ${place}`,
           `${sector} concorrentes ${place}`,
-          `${input.clientName} ${sector}`,
         ]
       : [
-          `${sector} market trends`,
-          `${sector} benchmarks Brasil`,
-          `${sector} industria oportunidades`,
+          `${sector} market trends Brasil`,
+          `${sector} benchmarks industria`,
         ];
 
   try {

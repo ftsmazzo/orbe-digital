@@ -1,11 +1,14 @@
 import { notFound } from "next/navigation";
 import { and, desc, eq } from "drizzle-orm";
 import { PERSPECTIVE_LABELS, PERSPECTIVES } from "@orbe/shared";
+import { MarketResearchForm } from "@/components/MarketResearchForm";
 import { Button, Card, Field, Input, PageHeader, Select, Textarea } from "@/components/ui";
 import { clients, db, goals, indicators, marketInsights } from "@/lib/db";
 import { formatDateTime } from "@/lib/format";
 import { getCurrentOrg } from "@/lib/org";
-import { createGoal, createIndicator, runMarketResearch } from "../../../actions";
+import { createGoal, createIndicator } from "../../../actions";
+
+export const maxDuration = 180;
 
 const months = Array.from({ length: 12 }, (_, index) => String(index + 1).padStart(2, "0"));
 
@@ -46,31 +49,11 @@ export default async function PlanningPage({ params }: { params: Promise<{ id: s
             <p className="mt-1 text-sm text-slate-500">
               Regional para empresa local; global/amplo quando o alcance for maior. Gera rascunho para personalizar o comercial.
             </p>
-            <form action={runMarketResearch.bind(null, id)} className="mt-4 grid gap-3">
-              <Field label="Alcance">
-                <Select name="scope" defaultValue="regional">
-                  <option value="regional">Regional (cidade/UF/praca)</option>
-                  <option value="global">Global / amplo</option>
-                </Select>
-              </Field>
-              <Field label="Regiao / mercado">
-                <Input name="region" defaultValue={client.city ?? ""} placeholder="Ex.: Sao Paulo - SP ou LatAm" />
-              </Field>
-              <Field label="Setor">
-                <Input name="sector" defaultValue={client.sector ?? ""} placeholder="Ex.: Moda / Varejo" />
-              </Field>
-              <Field label="Site do cliente (opcional)">
-                <Input name="website" placeholder="https://exemplo.com.br" />
-              </Field>
-              <label className="flex items-center gap-2 text-sm text-slate-700">
-                <input name="applyIndicators" type="checkbox" defaultChecked />
-                Criar indicadores sugeridos automaticamente
-              </label>
-              <p className="text-xs text-amber-800">
-                Apify + Claude geram rascunho com fontes. Valide numeros com o cliente antes de apresentar.
-              </p>
-              <Button>Rodar pesquisa</Button>
-            </form>
+            <MarketResearchForm
+              clientId={id}
+              defaultRegion={client.city ?? ""}
+              defaultSector={client.sector ?? ""}
+            />
           </Card>
 
           <Card>
