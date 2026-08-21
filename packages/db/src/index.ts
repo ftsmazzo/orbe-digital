@@ -4,13 +4,20 @@ import * as schema from "./schema";
 
 export * from "./schema";
 
-function createDb() {
+function resolveDatabaseUrl() {
   const url = process.env["DATABASE_URL"];
-  if (!url) {
-    throw new Error("DATABASE_URL não definido");
+  if (url) return url;
+
+  // Next.js imports server modules during `next build`; allow a dummy URL then.
+  if (process.env["NEXT_PHASE"] === "phase-production-build") {
+    return "postgresql://build:build@127.0.0.1:5432/build";
   }
 
-  const client = postgres(url, {
+  throw new Error("DATABASE_URL não definido");
+}
+
+function createDb() {
+  const client = postgres(resolveDatabaseUrl(), {
     max: 10,
     prepare: false,
   });

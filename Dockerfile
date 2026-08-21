@@ -13,6 +13,12 @@ COPY packages/shared/package.json ./packages/shared/
 RUN pnpm install --frozen-lockfile=false
 
 FROM base AS builder
+ARG DATABASE_URL
+ARG BETTER_AUTH_SECRET
+ARG BETTER_AUTH_URL
+ENV DATABASE_URL=$DATABASE_URL
+ENV BETTER_AUTH_SECRET=$BETTER_AUTH_SECRET
+ENV BETTER_AUTH_URL=$BETTER_AUTH_URL
 COPY --from=deps /app/ ./
 COPY . .
 ENV NODE_ENV=production
