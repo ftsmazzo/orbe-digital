@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/ui";
 import { clients, db, diagnostics } from "@/lib/db";
 import type { DiagnosticPayload } from "@orbe/shared";
 import { getCurrentOrg } from "@/lib/org";
-import { saveDiagnostic, validateDiagnostic } from "../../actions";
+import { saveDiagnostic, validateDiagnostic, draftPlanFromDiagnostic } from "../../actions";
 
 export default async function DiagnosticDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -47,6 +47,7 @@ export default async function DiagnosticDetailPage({ params }: { params: Promise
         validated={diagnostic.validated}
         saveAction={saveDiagnostic.bind(null, id)}
         validateAction={validateDiagnostic.bind(null, id)}
+        draftPlanAction={draftPlanFromDiagnostic.bind(null, id)}
         planningHref={client ? `/app/clients/${client.id}/planning` : "/app/clients"}
       />
     </>

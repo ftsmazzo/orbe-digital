@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BarChart3, ClipboardList, Handshake, LayoutDashboard, Mic2, Target, Users } from "lucide-react";
+import { BarChart3, ClipboardList, Handshake, LayoutDashboard, Mic2, Settings, Target, Users } from "lucide-react";
 import { getCurrentOrg } from "@/lib/org";
 
 const nav = [
@@ -10,6 +10,7 @@ const nav = [
   { href: "/app/actions", label: "Acoes", icon: LayoutDashboard },
   { href: "/app/dashboard", label: "Dashboard", icon: BarChart3 },
   { href: "/app/proposals", label: "Propostas", icon: Handshake },
+  { href: "/app/settings", label: "Config", icon: Settings },
 ];
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {

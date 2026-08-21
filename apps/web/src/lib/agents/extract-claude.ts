@@ -1,4 +1,5 @@
-import type { Confidence, DiagnosticFieldValue, DiagnosticPayload } from "@orbe/shared";
+import type { Confidence, DiagnosticFieldValue, DiagnosticPayload, Score360, Score360Dimension, Score360Profile } from "@orbe/shared";
+import { SCORE360_DIMENSIONS, SCORE360_PROFILES, computeScore360Total } from "@orbe/shared";
 import { completeJson, hasAnthropicKey } from "@/lib/ai/claude";
 
 export type ExtractedDiagnostic = {
@@ -29,6 +30,7 @@ Regras obrigatorias:
 - Cada campo de valor deve ser { "value": ..., "confianca": "alta"|"media"|"baixa", "evidencia": "trecho curto da transcricao" }.
 - Separar fato (campos) de interpretacao (gaps/prioridades).
 - maturidade de 1 a 5 com justificativa implicita nos gaps.
+- Sugira score360 com perfil "consultoria" e notas 1-5 nas 7 dimensoes SO com base na transcricao (use 0 se nao houver evidencia).
 - Responda SOMENTE JSON valido, sem markdown.`;
 
 function asField(raw: unknown): DiagnosticFieldValue | undefined {
@@ -65,6 +67,27 @@ function clampMaturity(value: unknown, fallback: number) {
   return Math.max(1, Math.min(5, Math.round(n)));
 }
 
+function normalizeScore360(raw: unknown): Score360 | undefined {
+  if (!raw || typeof raw !== "object") return undefined;
+  const obj = raw as Record<string, unknown>;
+  const perfilRaw = String(obj.perfil ?? "consultoria");
+  const perfil = (SCORE360_PROFILES.includes(perfilRaw as Score360Profile)
+    ? perfilRaw
+    : "consultoria") as Score360Profile;
+  const dimsRaw = (obj.dimensoes ?? {}) as Record<string, unknown>;
+  const dimensoes: Partial<Record<Score360Dimension, number>> = {};
+  for (const dim of SCORE360_DIMENSIONS) {
+    const n = Number(dimsRaw[dim]);
+    if (Number.isFinite(n) && n > 0) dimensoes[dim] = Math.max(1, Math.min(5, Math.round(n)));
+  }
+  if (!Object.keys(dimensoes).length) return undefined;
+  return {
+    perfil,
+    dimensoes,
+    total: computeScore360Total(perfil, dimensoes),
+  };
+}
+
 export async function extractDiagnosticWithClaude(
   transcript: string,
   clientName: string,
@@ -89,6 +112,18 @@ Retorne JSON no formato:
     "operacional": { "processos_criticos": {...}, "gargalos": {...}, "fluxo_informacao": {...}, "tecnologia": {...}, "padronizacao": {...} },
     "comercial": { "canais": {...}, "conversao": {...}, "rotina_vendas": {...}, "materiais": {...} },
     "swot": { "forcas": {...}, "fraquezas": {...}, "oportunidades": {...}, "ameacas": {...} },
+    "score360": {
+      "perfil": "consultoria",
+      "dimensoes": {
+        "estrategia": 1-5,
+        "mercado": 1-5,
+        "financeiro": 1-5,
+        "operacional": 1-5,
+        "comercial": 1-5,
+        "digital": 1-5,
+        "esg_cultura": 1-5
+      }
+    },
     "maturidade": 1-5,
     "prioridades": [],
     "riscos": [],
@@ -125,6 +160,8 @@ Retorne JSON no formato:
     };
   }
 
+  const score360 = normalizeScore360(payloadRaw.score360);
+
   const payload: DiagnosticPayload = {
     empresa,
     estrategico: normalizeSection(payloadRaw.estrategico),
@@ -132,6 +169,7 @@ Retorne JSON no formato:
     operacional: normalizeSection(payloadRaw.operacional),
     comercial: normalizeSection(payloadRaw.comercial),
     swot: normalizeSection(payloadRaw.swot),
+    score360,
     maturidade: maturity,
     prioridades: priorities,
     riscos: risks,

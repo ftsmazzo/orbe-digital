@@ -3,9 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { and, desc, eq } from "drizzle-orm";
-import { ACTION_STATUSES, CRM_STAGES, PERSPECTIVES, type ActionStatus, type CrmStage, type Perspective } from "@orbe/shared";
+import { ACTION_STATUSES, CRM_STAGES, PERSPECTIVES, computeScore360Total, type ActionStatus, type CrmStage, type Perspective, type SalesQualification, type Score360 } from "@orbe/shared";
 import {
   actionItems,
+  clientArtifacts,
+  clientPeople,
   clients,
   consultingSessions,
   db,
@@ -13,6 +15,7 @@ import {
   goals,
   indicators,
   marketInsights,
+  organizations,
   proposals,
   reports,
 } from "@/lib/db";
@@ -20,6 +23,11 @@ import { extractDiagnosticFromTranscript, mockTranscript } from "@/lib/agents/ex
 import { researchMarketEnriched, type MarketScope } from "@/lib/agents/market-research-apify";
 import { generateProposalHtml } from "@/lib/agents/proposal";
 import { generateReportHtml } from "@/lib/agents/report";
+import { dueDateFromBusinessDays } from "@/lib/finance/business-days";
+import { computePayrollCost } from "@/lib/finance/payroll-cost";
+import { computeValuation, type ValuationInput } from "@/lib/finance/valuation";
+import { computeWorkingCapital, type WorkingCapitalInput } from "@/lib/finance/working-capital";
+import { mergeOrgSettings } from "@/lib/sales/playbook";
 import { getCurrentOrg } from "@/lib/org";
 import { putObject } from "@/lib/storage";
 import type { DiagnosticPayload } from "@orbe/shared";
@@ -342,11 +350,21 @@ export async function saveDiagnostic(diagnosticId: string, formData: FormData) {
     }
   }
 
+  if (payload.score360?.perfil && payload.score360.dimensoes) {
+    const total = computeScore360Total(payload.score360.perfil, payload.score360.dimensoes);
+    payload = { ...payload, score360: { ...payload.score360, total } };
+  }
+
+  const maturityFromScore =
+    payload.score360?.total != null
+      ? Math.max(1, Math.min(5, Math.round((payload.score360.total / 100) * 5)))
+      : undefined;
+
   await db
     .update(diagnostics)
     .set({
       payload,
-      maturity: numberValue(formData, "maturity"),
+      maturity: numberValue(formData, "maturity") ?? maturityFromScore,
       gaps: lines(text(formData, "gaps")),
       priorities: lines(text(formData, "priorities")),
       risks: lines(text(formData, "risks")),
@@ -471,6 +489,22 @@ export async function createActionItem(clientId: string, formData: FormData) {
   if (!ACTION_STATUSES.includes(status)) return;
 
   const { orgId } = await getCurrentOrg();
+  const startDate = parseDate(text(formData, "startDate"));
+  let dueDate = parseDate(text(formData, "dueDate"));
+  const businessDays = numberValue(formData, "businessDays");
+
+  if (startDate && businessDays && !dueDate) {
+    const [org] = await db.select().from(organizations).where(eq(organizations.id, orgId)).limit(1);
+    const settings = mergeOrgSettings(org?.settings);
+    const dueIso = dueDateFromBusinessDays(
+      startDate.toISOString().slice(0, 10),
+      businessDays,
+      startDate.getFullYear(),
+      settings.localHolidays,
+    );
+    dueDate = parseDate(dueIso);
+  }
+
   await db.insert(actionItems).values({
     organizationId: orgId,
     clientId,
@@ -481,9 +515,9 @@ export async function createActionItem(clientId: string, formData: FormData) {
     how: text(formData, "how"),
     sector: text(formData, "sector"),
     ownerName: text(formData, "ownerName"),
-    startDate: parseDate(text(formData, "startDate")),
-    dueDate: parseDate(text(formData, "dueDate")),
-    businessDays: numberValue(formData, "businessDays"),
+    startDate,
+    dueDate,
+    businessDays,
     status,
   });
   revalidatePath(`/app/clients/${clientId}/actions`);
@@ -577,4 +611,280 @@ export async function updateProposal(proposalId: string, clientId: string, formD
     })
     .where(and(eq(proposals.id, proposalId), eq(proposals.organizationId, orgId)));
   revalidatePath(`/app/clients/${clientId}/proposals`);
+}
+
+export async function saveSalesQualification(clientId: string, formData: FormData) {
+  const { orgId } = await getCurrentOrg();
+  let qualification: SalesQualification = {};
+  try {
+    qualification = JSON.parse(text(formData, "salesQualification") ?? "{}") as SalesQualification;
+  } catch {
+    qualification = {};
+  }
+  await db
+    .update(clients)
+    .set({ salesQualification: qualification, updatedAt: new Date() })
+    .where(and(eq(clients.id, clientId), eq(clients.organizationId, orgId)));
+  revalidatePath(`/app/clients/${clientId}`);
+}
+
+export async function saveClientTeams(clientId: string, formData: FormData) {
+  const { orgId } = await getCurrentOrg();
+  const teams = lines(text(formData, "teams"));
+  await db
+    .update(clients)
+    .set({ teams, updatedAt: new Date() })
+    .where(and(eq(clients.id, clientId), eq(clients.organizationId, orgId)));
+  revalidatePath(`/app/clients/${clientId}`);
+  revalidatePath(`/app/clients/${clientId}/team`);
+}
+
+export async function saveOrgSettings(formData: FormData) {
+  const { orgId } = await getCurrentOrg();
+  let priceBook = mergeOrgSettings().priceBook;
+  try {
+    priceBook = JSON.parse(text(formData, "priceBook") ?? "[]");
+  } catch {
+    /* keep default */
+  }
+  const settings = {
+    playbookVersion: numberValue(formData, "playbookVersion") ?? 1,
+    monthlyRevenueGoal: numberValue(formData, "monthlyRevenueGoal") ?? 50000,
+    localHolidays: lines(text(formData, "localHolidays")),
+    priceBook,
+  };
+  await db.update(organizations).set({ settings }).where(eq(organizations.id, orgId));
+  revalidatePath("/app/settings");
+}
+
+export async function draftPlanFromDiagnostic(diagnosticId: string) {
+  const { orgId } = await getCurrentOrg();
+  const [diagnostic] = await db
+    .select()
+    .from(diagnostics)
+    .where(and(eq(diagnostics.id, diagnosticId), eq(diagnostics.organizationId, orgId)))
+    .limit(1);
+  if (!diagnostic) return;
+
+  const clientId = diagnostic.clientId;
+  const year = new Date().getFullYear();
+  const payload = (diagnostic.payload ?? {}) as DiagnosticPayload;
+  const priorities = diagnostic.priorities?.length
+    ? diagnostic.priorities
+    : payload.prioridades ?? ["Estruturar controles", "Melhorar conversao", "Padronizar processos"];
+  const score = payload.score360 as Score360 | undefined;
+  const weakDims =
+    score?.dimensoes
+      ? Object.entries(score.dimensoes)
+          .filter(([, v]) => Number(v) > 0 && Number(v) <= 2)
+          .map(([k]) => k)
+      : [];
+
+  const perspectiveCycle = [...PERSPECTIVES];
+  for (let i = 0; i < Math.min(4, priorities.length); i++) {
+    const title = priorities[i]!;
+    const [goal] = await db
+      .insert(goals)
+      .values({
+        organizationId: orgId,
+        clientId,
+        title,
+        notes: weakDims.length ? `Dimensoes fracas Score360: ${weakDims.join(", ")}` : "Rascunho a partir do diagnostico",
+        year,
+      })
+      .returning();
+
+    const perspective = perspectiveCycle[i % perspectiveCycle.length]!;
+    const [indicator] = await db
+      .insert(indicators)
+      .values({
+        organizationId: orgId,
+        clientId,
+        goalId: goal.id,
+        perspective,
+        name: `KPI — ${title.slice(0, 60)}`,
+        direction: "aumentar",
+        unit: "numero",
+        year,
+        planned: {},
+        actual: {},
+      })
+      .returning();
+
+    await db.insert(actionItems).values({
+      organizationId: orgId,
+      clientId,
+      goalId: goal.id,
+      indicatorId: indicator.id,
+      perspective,
+      title: `PA: ${title.slice(0, 80)}`,
+      how: "Detalhar com o cliente na reuniao de planejamento (R).",
+      status: "nao_iniciado",
+    });
+  }
+
+  revalidatePath(`/app/clients/${clientId}/planning`);
+  revalidatePath(`/app/clients/${clientId}/actions`);
+  revalidatePath(`/app/diagnostics/${diagnosticId}`);
+  redirect(`/app/clients/${clientId}/planning`);
+}
+
+export async function saveWorkingCapital(clientId: string, formData: FormData) {
+  const { orgId } = await getCurrentOrg();
+  let input: WorkingCapitalInput;
+  try {
+    input = JSON.parse(text(formData, "payload") ?? "{}") as WorkingCapitalInput;
+  } catch {
+    return;
+  }
+  const result = computeWorkingCapital(input);
+  const existing = await db
+    .select()
+    .from(clientArtifacts)
+    .where(
+      and(
+        eq(clientArtifacts.clientId, clientId),
+        eq(clientArtifacts.organizationId, orgId),
+        eq(clientArtifacts.kind, "working_capital"),
+      ),
+    )
+    .orderBy(desc(clientArtifacts.createdAt))
+    .limit(1);
+
+  const payload = { input, result };
+  if (existing[0]) {
+    await db
+      .update(clientArtifacts)
+      .set({
+        payload,
+        title: `Capital de giro — ${input.companyName ?? "cliente"}`,
+        version: existing[0].version + 1,
+        status: "rascunho",
+        updatedAt: new Date(),
+      })
+      .where(eq(clientArtifacts.id, existing[0].id));
+  } else {
+    await db.insert(clientArtifacts).values({
+      organizationId: orgId,
+      clientId,
+      kind: "working_capital",
+      title: `Capital de giro — ${input.companyName ?? "cliente"}`,
+      payload,
+    });
+  }
+  revalidatePath(`/app/clients/${clientId}/finance/working-capital`);
+}
+
+export async function saveValuation(clientId: string, formData: FormData) {
+  const { orgId } = await getCurrentOrg();
+  let input: ValuationInput;
+  try {
+    input = JSON.parse(text(formData, "payload") ?? "{}") as ValuationInput;
+  } catch {
+    return;
+  }
+  const result = computeValuation(input);
+  const existing = await db
+    .select()
+    .from(clientArtifacts)
+    .where(
+      and(
+        eq(clientArtifacts.clientId, clientId),
+        eq(clientArtifacts.organizationId, orgId),
+        eq(clientArtifacts.kind, "valuation"),
+      ),
+    )
+    .orderBy(desc(clientArtifacts.createdAt))
+    .limit(1);
+
+  const payload = { input, result };
+  if (existing[0]) {
+    await db
+      .update(clientArtifacts)
+      .set({
+        payload,
+        title: input.title || "Valuation",
+        version: existing[0].version + 1,
+        updatedAt: new Date(),
+      })
+      .where(eq(clientArtifacts.id, existing[0].id));
+  } else {
+    await db.insert(clientArtifacts).values({
+      organizationId: orgId,
+      clientId,
+      kind: "valuation",
+      title: input.title || "Valuation",
+      payload,
+    });
+  }
+  revalidatePath(`/app/clients/${clientId}/finance/valuation`);
+}
+
+export async function addClientPerson(clientId: string, formData: FormData) {
+  const { orgId } = await getCurrentOrg();
+  await db.insert(clientPeople).values({
+    organizationId: orgId,
+    clientId,
+    name: text(formData, "name") ?? "Colaborador",
+    role: text(formData, "role"),
+    team: text(formData, "team"),
+    salaryBase: text(formData, "salaryBase") ?? "0",
+    employerCostFactor: text(formData, "employerCostFactor") ?? "1.7",
+  });
+  await refreshPayrollArtifact(clientId, orgId);
+  revalidatePath(`/app/clients/${clientId}/finance/payroll`);
+  revalidatePath(`/app/clients/${clientId}/team`);
+}
+
+export async function removeClientPerson(personId: string, clientId: string) {
+  const { orgId } = await getCurrentOrg();
+  await db
+    .delete(clientPeople)
+    .where(and(eq(clientPeople.id, personId), eq(clientPeople.organizationId, orgId)));
+  await refreshPayrollArtifact(clientId, orgId);
+  revalidatePath(`/app/clients/${clientId}/finance/payroll`);
+  revalidatePath(`/app/clients/${clientId}/team`);
+}
+
+async function refreshPayrollArtifact(clientId: string, orgId: string) {
+  const people = await db
+    .select()
+    .from(clientPeople)
+    .where(and(eq(clientPeople.clientId, clientId), eq(clientPeople.organizationId, orgId)));
+  const result = computePayrollCost(
+    people.map((p) => ({
+      name: p.name,
+      role: p.role ?? undefined,
+      team: p.team ?? undefined,
+      salaryBase: Number(p.salaryBase ?? 0),
+      employerCostFactor: Number(p.employerCostFactor ?? 1.7),
+      active: p.active,
+    })),
+  );
+  const existing = await db
+    .select()
+    .from(clientArtifacts)
+    .where(
+      and(
+        eq(clientArtifacts.clientId, clientId),
+        eq(clientArtifacts.organizationId, orgId),
+        eq(clientArtifacts.kind, "payroll_cost"),
+      ),
+    )
+    .limit(1);
+  const payload = { people: people.map((p) => p.id), result };
+  if (existing[0]) {
+    await db
+      .update(clientArtifacts)
+      .set({ payload, title: "Custo de pessoal", version: existing[0].version + 1, updatedAt: new Date() })
+      .where(eq(clientArtifacts.id, existing[0].id));
+  } else {
+    await db.insert(clientArtifacts).values({
+      organizationId: orgId,
+      clientId,
+      kind: "payroll_cost",
+      title: "Custo de pessoal",
+      payload,
+    });
+  }
 }

@@ -44,6 +44,7 @@ export default async function ClientActionsPage({ params }: { params: Promise<{ 
               <Field label="Prazo"><Input name="dueDate" type="date" /></Field>
             </div>
             <Field label="Dias uteis"><Input name="businessDays" type="number" /></Field>
+            <p className="text-xs text-slate-500">Se informar inicio + dias uteis (sem prazo), o sistema calcula a data fim com feriados BR.</p>
             <Field label="Status"><Select name="status" defaultValue="nao_iniciado">{ACTION_STATUSES.map((status) => <option key={status} value={status}>{ACTION_STATUS_LABELS[status]}</option>)}</Select></Field>
             <Button>Criar acao</Button>
           </form>

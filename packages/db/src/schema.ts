@@ -47,6 +47,8 @@ export const organizations = pgTable("organizations", {
   id: uuid("id").defaultRandom().primaryKey(),
   name: text("name").notNull(),
   slug: text("slug").notNull().unique(),
+  /** Playbook comercial, price book, feriados locais, etc. */
+  settings: jsonb("settings").$type<Record<string, unknown>>().default({}).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
@@ -136,6 +138,58 @@ export const clients = pgTable("clients", {
   city: text("city"),
   notes: text("notes"),
   stage: crmStageEnum("stage").default("lead").notNull(),
+  /** Areas/equipes do cliente (Donna equipes). */
+  teams: jsonb("teams").$type<string[]>().default([]).notNull(),
+  /** Checklist admitir/nao admitir + notas comerciais. */
+  salesQualification: jsonb("sales_qualification")
+    .$type<Record<string, unknown>>()
+    .default({})
+    .notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const artifactKindEnum = pgEnum("artifact_kind", [
+  "sales_qualification",
+  "score360",
+  "working_capital",
+  "valuation",
+  "payroll_cost",
+]);
+
+/** Artifacts versionados por cliente (CG, valuation, folha light, etc.). */
+export const clientArtifacts = pgTable("client_artifacts", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  organizationId: uuid("organization_id")
+    .notNull()
+    .references(() => organizations.id, { onDelete: "cascade" }),
+  clientId: uuid("client_id")
+    .notNull()
+    .references(() => clients.id, { onDelete: "cascade" }),
+  kind: artifactKindEnum("kind").notNull(),
+  title: text("title").notNull(),
+  status: text("status").default("rascunho").notNull(),
+  version: integer("version").default(1).notNull(),
+  payload: jsonb("payload").$type<Record<string, unknown>>().default({}).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+/** Pessoas / headcount do cliente (equipes + folha light). */
+export const clientPeople = pgTable("client_people", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  organizationId: uuid("organization_id")
+    .notNull()
+    .references(() => organizations.id, { onDelete: "cascade" }),
+  clientId: uuid("client_id")
+    .notNull()
+    .references(() => clients.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  role: text("role"),
+  team: text("team"),
+  salaryBase: numeric("salary_base", { precision: 12, scale: 2 }),
+  employerCostFactor: numeric("employer_cost_factor", { precision: 6, scale: 4 }).default("1.7"),
+  active: boolean("active").default(true).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });

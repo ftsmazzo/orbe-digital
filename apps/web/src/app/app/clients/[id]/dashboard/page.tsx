@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { and, eq } from "drizzle-orm";
-import { PERSPECTIVE_LABELS } from "@orbe/shared";
+import { PERSPECTIVE_LABELS, PERSPECTIVES } from "@orbe/shared";
 import { Card, PageHeader } from "@/components/ui";
 import { actionItems, clients, db, indicators } from "@/lib/db";
 import { formatDate, pct } from "@/lib/format";
@@ -25,14 +25,49 @@ export default async function ClientDashboardPage({ params }: { params: Promise<
   const overdue = actionRows.filter((action) => action.status === "atrasado" || (action.dueDate && action.dueDate < new Date() && action.status !== "concluido"));
   const completed = actionRows.filter((action) => action.status === "concluido").length;
 
+  const bsc = PERSPECTIVES.map((perspective) => {
+    const items = indicatorRows.filter((i) => i.perspective === perspective);
+    const avg =
+      items.length === 0
+        ? 0
+        : items.reduce((s, i) => s + progress(i.planned, i.actual), 0) / items.length;
+    return { perspective, items, avg };
+  });
+
   return (
     <>
-      <PageHeader title={`Dashboard - ${client.name}`} description="Leitura executiva de progresso, execucao e alertas." />
+      <PageHeader title={`Dashboard - ${client.name}`} description="Mapa BCS: planejado x realizado por perspectiva + alertas." />
       <div className="grid gap-6 md:grid-cols-3">
         <Card><p className="text-sm text-slate-500">Indicadores</p><strong className="mt-2 block text-3xl text-[#012245]">{indicatorRows.length}</strong></Card>
         <Card><p className="text-sm text-slate-500">Acoes concluidas</p><strong className="mt-2 block text-3xl text-[#2e7271]">{completed}</strong></Card>
         <Card><p className="text-sm text-slate-500">Acoes em atraso</p><strong className="mt-2 block text-3xl text-red-700">{overdue.length}</strong></Card>
       </div>
+
+      <Card className="mt-6">
+        <h2 className="text-lg font-semibold text-[#012245]">Mapa BSC</h2>
+        <div className="mt-4 grid gap-4 md:grid-cols-2">
+          {bsc.map((block) => (
+            <div key={block.perspective} className="rounded-2xl border border-slate-100 p-4">
+              <div className="flex items-center justify-between gap-2">
+                <strong>{PERSPECTIVE_LABELS[block.perspective]}</strong>
+                <span className="text-sm text-slate-500">{pct(block.avg)} · {block.items.length} KPI(s)</span>
+              </div>
+              <div className="mt-2 h-3 rounded-full bg-slate-100">
+                <div className="h-3 rounded-full bg-[#c8a04c]" style={{ width: `${Math.min(100, block.avg)}%` }} />
+              </div>
+              <ul className="mt-3 space-y-1 text-sm text-slate-600">
+                {block.items.slice(0, 4).map((i) => (
+                  <li key={i.id}>
+                    {i.name} — {pct(progress(i.planned, i.actual))}
+                  </li>
+                ))}
+                {!block.items.length ? <li className="text-slate-400">Sem indicadores nesta perspectiva.</li> : null}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </Card>
+
       <div className="mt-6 grid gap-6 xl:grid-cols-[1fr_380px]">
         <Card>
           <h2 className="text-lg font-semibold text-[#012245]">Progresso dos indicadores</h2>
