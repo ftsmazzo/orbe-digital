@@ -11,6 +11,10 @@
 
 Repo: https://github.com/ftsmazzo/orbe-digital
 
+> **Deploy da app:** o serviço `orbe-app` já está cadastrado no EasyPanel com source GitHub.
+> Se o deploy falhar com "Repository not found", autorize o GitHub App do EasyPanel no repo privado
+> (`Settings → Integrations` no GitHub ou painel EasyPanel → GitHub).
+
 ## Credenciais Postgres
 
 Interna (app na VPS):
