@@ -37,7 +37,7 @@ export async function runGoogleSearch(queries: string[], maxResults = 6): Promis
       queries: queries.join("\n"),
       maxPagesPerQuery: 1,
       resultsPerPage: Math.min(10, Math.max(3, maxResults)),
-      languageCode: "pt",
+      languageCode: "pt-BR",
       countryCode: "br",
     },
     { waitSecs: 90 },

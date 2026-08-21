@@ -433,7 +433,10 @@ export async function runMarketResearch(clientId: string, formData: FormData) {
     scope: research.scope,
     region: research.region,
     sector: research.sector,
-    summary: research.summary,
+    summary:
+      research.source === "heuristic"
+        ? `[Heuristica] ${research.summary}`
+        : `[Apify+Claude] ${research.summary}`,
     payload: research.payload,
   });
 
