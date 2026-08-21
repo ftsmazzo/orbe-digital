@@ -4,16 +4,43 @@ import * as schema from "./schema";
 
 export * from "./schema";
 
-const url = process.env.DATABASE_URL;
+type Db = ReturnType<typeof drizzle<typeof schema>>;
 
-if (!url) {
-  console.warn("[@orbe/db] DATABASE_URL não definido");
+const globalForDb = globalThis as unknown as {
+  __orbeSql?: ReturnType<typeof postgres>;
+  __orbeDb?: Db;
+};
+
+function getDatabaseUrl() {
+  const url = process.env["DATABASE_URL"];
+  if (!url) {
+    throw new Error("DATABASE_URL não definido");
+  }
+  return url;
 }
 
-const client = postgres(url ?? "postgresql://orbe:orbe_local_dev@127.0.0.1:5432/orbe", {
-  max: 10,
-  prepare: false,
+function createDb() {
+  const client =
+    globalForDb.__orbeSql ??
+    postgres(getDatabaseUrl(), {
+      max: 10,
+      prepare: false,
+    });
+
+  if (process.env.NODE_ENV !== "production") {
+    globalForDb.__orbeSql = client;
+  }
+
+  return drizzle(client, { schema });
+}
+
+export const db: Db = new Proxy({} as Db, {
+  get(_target, prop, receiver) {
+    const instance = globalForDb.__orbeDb ?? createDb();
+    globalForDb.__orbeDb = instance;
+    const value = Reflect.get(instance as object, prop, receiver);
+    return typeof value === "function" ? value.bind(instance) : value;
+  },
 });
 
-export const db = drizzle(client, { schema });
-export type Database = typeof db;
+export type Database = Db;
