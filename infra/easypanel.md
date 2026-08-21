@@ -34,10 +34,20 @@ DATABASE_URL=postgresql://orbe:OrbePg2026Secure!@orbe_orbe-postgres:5432/orbe
 BETTER_AUTH_SECRET=<gerar-32-chars>
 BETTER_AUTH_URL=https://orbe-app.kxryyk.easypanel.host
 STORAGE_MODE=local
-UPLOAD_DIR=/app/.data/uploads
+UPLOAD_DIR=/tmp/orbe-uploads
 N8N_WEBHOOK_STT=https://pazotti-n8n.kxryyk.easypanel.host/webhook/orbe-stt
 N8N_CALLBACK_SECRET=orbe-callback-secret
 ```
+
+## MinIO
+
+Comando no EasyPanel (obrigatório o binário `minio`):
+
+```
+minio server /data --console-address :9001
+```
+
+Se usar só `server /data...`, o log fica `server: command not found` e o serviço fica amarelo.
 
 ## Workflow STT (n8n)
 

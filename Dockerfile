@@ -30,13 +30,12 @@ ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
-ENV UPLOAD_DIR=/app/.data/uploads
+ENV UPLOAD_DIR=/tmp/orbe-uploads
 
 RUN addgroup --system --gid 1001 nodejs \
   && adduser --system --uid 1001 nextjs \
-  && mkdir -p /app/.data/uploads \
-  && chown -R nextjs:nodejs /app/.data
-
+  && mkdir -p /tmp/orbe-uploads \
+  && chown -R nextjs:nodejs /tmp/orbe-uploads
 COPY --from=builder /app/apps/web/public ./apps/web/public
 COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/apps/web/.next/static ./apps/web/.next/static
