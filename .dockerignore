@@ -3,10 +3,10 @@ node_modules
 .git
 .data
 uploads
-Contexto
 *.md
 .env
 .env.local
-apps/web/.env*
-apps/web/node_modules
-packages/db/node_modules
+apps/web/.env
+apps/web/.env.local
+**/.DS_Store
+Contexto
