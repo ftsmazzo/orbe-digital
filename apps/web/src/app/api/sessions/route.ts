@@ -3,7 +3,7 @@ import { and, desc, eq } from "drizzle-orm";
 import { clients, consultingSessions, db, diagnostics } from "@/lib/db";
 import { extractDiagnosticFromTranscript, mockTranscript } from "@/lib/agents/extract";
 import { retrieveKnowledge } from "@/lib/knowledge/retrieve";
-import { getCurrentOrg, requireOrg } from "@/lib/org";
+import { requireOrg } from "@/lib/org";
 import { putObject } from "@/lib/storage";
 
 export const runtime = "nodejs";

@@ -52,8 +52,8 @@ export async function uploadClientDocument(clientId: string, formData: FormData)
   if (hasFile && file.size > MAX_UPLOAD_BYTES) return;
 
   let storageKey: string | undefined;
-  let mimeType = hasFile ? file.type || "application/octet-stream" : "text/plain";
-  let title = hasFile ? file.name : "Anotacao colada";
+  const mimeType = hasFile ? file.type || "application/octet-stream" : "text/plain";
+  const title = hasFile ? file.name : "Anotacao colada";
   let extracted = pasted;
   let source = "texto";
   let ocrError: string | undefined;
