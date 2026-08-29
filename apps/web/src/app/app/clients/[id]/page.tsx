@@ -4,7 +4,7 @@ import { and, desc, eq } from "drizzle-orm";
 import { CRM_STAGE_LABELS, CRM_STAGES, type SalesQualification } from "@orbe/shared";
 import { SalesQualificationForm } from "@/components/SalesQualificationForm";
 import { Button, Card, Field, Input, LinkButton, PageHeader, Select, Textarea } from "@/components/ui";
-import { actionItems, clients, consultingSessions, db, diagnostics, organizations, proposals, reports } from "@/lib/db";
+import { actionItems, clients, consultingSessions, db, diagnostics, organizations, proposals, reports, salesScoreEvents } from "@/lib/db";
 import { formatDateTime } from "@/lib/format";
 import { mergeOrgSettings } from "@/lib/sales/playbook";
 import { getCurrentOrg } from "@/lib/org";
@@ -26,6 +26,12 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
     db.select().from(reports).where(and(eq(reports.clientId, id), eq(reports.organizationId, orgId))).orderBy(desc(reports.createdAt)),
     db.select().from(proposals).where(and(eq(proposals.clientId, id), eq(proposals.organizationId, orgId))).orderBy(desc(proposals.createdAt)),
   ]);
+  const scoreEventRows = await db
+    .select()
+    .from(salesScoreEvents)
+    .where(eq(salesScoreEvents.organizationId, orgId))
+    .orderBy(desc(salesScoreEvents.createdAt))
+    .limit(40);
 
   return (
     <>
@@ -63,6 +69,10 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
                 action={saveSalesQualification.bind(null, id)}
                 initial={(client.salesQualification ?? {}) as SalesQualification}
                 priceBook={settings.priceBook}
+                learnedEvents={scoreEventRows.map((e) => ({
+                  verdict: e.verdict,
+                  payload: (e.payload ?? {}) as Record<string, unknown>,
+                }))}
               />
             </div>
           </Card>
@@ -74,12 +84,15 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
               <LinkButton href="/app/sessions">Nova sessao</LinkButton>
               <LinkButton href={`/app/clients/${id}/actions`}>Acoes</LinkButton>
               <LinkButton href={`/app/clients/${id}/dashboard`}>Dashboard</LinkButton>
+              <LinkButton href={`/print/dashboard/${id}`}>Imprimir dashboard</LinkButton>
               <LinkButton href={`/app/clients/${id}/reports`}>Relatorios</LinkButton>
               <LinkButton href={`/app/clients/${id}/proposals`}>Propostas</LinkButton>
               <LinkButton href={`/app/clients/${id}/team`}>Equipes</LinkButton>
               <LinkButton href={`/app/clients/${id}/finance/working-capital`}>Capital de giro</LinkButton>
               <LinkButton href={`/app/clients/${id}/finance/valuation`}>Valuation</LinkButton>
               <LinkButton href={`/app/clients/${id}/finance/payroll`}>Folha light</LinkButton>
+              <LinkButton href={`/app/clients/${id}/finance/ebitda`}>Honorarios EBITDA</LinkButton>
+              <LinkButton href={`/app/clients/${id}/contracts`}>Contrato</LinkButton>
             </div>
           </Card>
           <div className="grid gap-4 md:grid-cols-2">

@@ -38,6 +38,21 @@ export const DEFAULT_SALES_PLAYBOOK = {
         "Qual decisao voce adia por falta de clareza?",
       ],
     },
+    {
+      id: "caminho",
+      title: "Caminho e fechamento mental",
+      questions: [
+        "Se eu te devolver clareza de direcao e rotina de CEO em 90-180 dias, o que muda?",
+        "Quem decide o investimento alem de voce?",
+      ],
+    },
+  ],
+  sheets: [
+    "1. Conversa estrategica",
+    "1. Conversa estrategica (copia)",
+    "2. Entendendo o cliente",
+    "3. Abordagem de fechamento",
+    "4. Metas e politica de preco",
   ],
   qualificationCriteria: [
     { id: "responsabilidade", label: "Assume responsabilidade" },

@@ -24,8 +24,11 @@ export const metadata: Metadata = {
     title: "ORBE",
   },
   icons: {
-    icon: [{ url: "/icons/icon.svg", type: "image/svg+xml" }],
-    apple: [{ url: "/icons/icon.svg" }],
+    icon: [
+      { url: "/icons/icon-orbe.png", type: "image/png" },
+      { url: "/icons/icon.svg", type: "image/svg+xml" },
+    ],
+    apple: [{ url: "/icons/icon-orbe.png" }],
   },
 };
 

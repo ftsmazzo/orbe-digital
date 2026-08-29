@@ -10,7 +10,7 @@ function list(items: unknown) {
     : "<li>A validar na proxima conversa.</li>";
 }
 
-export function generateProposalHtml(client: Client, diagnostic?: Diagnostic) {
+export function generateProposalHtml(client: Client, diagnostic?: Diagnostic, knowledge?: string) {
   const payload = diagnostic?.payload as DiagnosticPayload | undefined;
   const priorities = payload?.prioridades ?? diagnostic?.priorities ?? [];
   const risks = payload?.riscos ?? diagnostic?.risks ?? [];
@@ -33,7 +33,8 @@ export function generateProposalHtml(client: Client, diagnostic?: Diagnostic) {
         <li>Preparacao de proximos ciclos e renovacao.</li>
       </ol>
       <h2>Investimento</h2>
-      <p>Investimento a definir conforme escopo final, intensidade de acompanhamento e duracao do ciclo.</p>
+      <p>Investimento a definir conforme modalidade (diagnostico avulso, ciclo fee fixo ou success-fee 15% EBITDA). Obrigacao de meio, nao de resultado.</p>
+      ${knowledge ? `<h2>Principios de referencia</h2><p>${knowledge.slice(0, 1200).replaceAll("<", "&lt;")}</p>` : ""}
     </article>
   `;
 }

@@ -20,8 +20,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <div className="min-h-screen bg-[#f7f4ee] text-slate-900">
       <aside className="fixed inset-y-0 left-0 hidden w-72 flex-col bg-[#012245] p-6 text-white lg:flex">
         <Link href="/app/clients" className="block">
-          <p className="text-xs font-semibold uppercase tracking-[0.35em] text-[#c8a04c]">ORBE</p>
-          <h1 className="mt-2 text-2xl font-semibold">Digital</h1>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/brand/logo-orbe.png" alt="ORBE" className="h-14 w-14 rounded-2xl object-cover bg-white/10" />
+          <p className="mt-2 text-xs font-semibold uppercase tracking-[0.35em] text-[#c8a04c]">Digital</p>
         </Link>
         <nav className="mt-10 space-y-2">
           {nav.map((item) => {

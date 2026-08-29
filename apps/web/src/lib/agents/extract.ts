@@ -97,10 +97,11 @@ export function extractDiagnosticHeuristic(transcript: string, clientName: strin
 export async function extractDiagnosticFromTranscript(
   transcript: string,
   clientName: string,
+  knowledge?: string,
 ): Promise<ExtractedDiagnostic> {
   if (hasAnthropicKey()) {
     try {
-      return await extractDiagnosticWithClaude(transcript, clientName);
+      return await extractDiagnosticWithClaude(transcript, clientName, knowledge);
     } catch (error) {
       console.error("[extract] Claude falhou, usando heuristica:", error);
     }

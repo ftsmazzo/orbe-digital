@@ -27,6 +27,7 @@ async function synthesizeWithClaude(opts: {
   input: MarketResearchInput;
   hits: SearchHit[];
   pages: CrawlPage[];
+  knowledge?: string;
 }): Promise<MarketResearchResult> {
   const { input, hits, pages } = opts;
   const sector = (input.sector || "servicos").trim();
@@ -54,6 +55,9 @@ ${JSON.stringify(
   null,
   2,
 )}
+
+Principios ORBE (fonte; nao inventar numero):
+${(opts.knowledge ?? "").slice(0, 2500)}
 
 Retorne:
 {
@@ -107,7 +111,7 @@ Retorne:
 }
 
 export async function researchMarketEnriched(
-  input: MarketResearchInput & { website?: string | null },
+  input: MarketResearchInput & { website?: string | null; knowledge?: string },
 ): Promise<MarketResearchResult & { source: "apify+claude" | "heuristic" }> {
   if (!hasApifyToken()) {
     return { ...researchMarket(input), source: "heuristic" };
@@ -140,7 +144,7 @@ export async function researchMarketEnriched(
 
     if (hasAnthropicKey()) {
       try {
-        const synthesized = await synthesizeWithClaude({ input, hits, pages });
+        const synthesized = await synthesizeWithClaude({ input, hits, pages, knowledge: input.knowledge });
         return { ...synthesized, source: "apify+claude" };
       } catch (error) {
         console.error("[market-research] Claude sintese falhou:", error);

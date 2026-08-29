@@ -91,12 +91,16 @@ function normalizeScore360(raw: unknown): Score360 | undefined {
 export async function extractDiagnosticWithClaude(
   transcript: string,
   clientName: string,
+  knowledge?: string,
 ): Promise<ExtractedDiagnostic> {
   if (!hasAnthropicKey()) {
     throw new Error("ANTHROPIC_API_KEY ausente");
   }
 
   const user = `Cliente CRM: ${clientName}
+
+Base de principios (Hill > Kaplan/Norton > demais). Use so para orientar interpretacao; NUNCA invente fatos ou numeros que nao estejam na transcricao.
+${knowledge ? knowledge.slice(0, 8000) : "(apenas fichas internas se nao houver texto)"}
 
 Transcricao da sessao consultiva:
 """

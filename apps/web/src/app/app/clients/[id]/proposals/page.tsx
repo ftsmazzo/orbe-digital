@@ -29,11 +29,10 @@ export default async function ProposalsPage({ params }: { params: Promise<{ id: 
                 <p className="text-sm text-slate-500">{formatDateTime(proposal.createdAt)} · {proposal.status}</p>
               </div>
               <a
-                href={`data:text/html;charset=utf-8,${encodeURIComponent(proposal.contentHtml)}`}
-                download={`${proposal.title}.html`}
+                href={`/print/proposal/${proposal.id}`}
                 className="rounded-xl border border-[#012245]/15 px-4 py-2 text-sm font-semibold text-[#012245]"
               >
-                Exportar HTML
+                Imprimir PDF
               </a>
             </div>
             <form action={updateProposal.bind(null, proposal.id, id)} className="mt-4 grid gap-3">

@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import type { SalesQualification, SalesQualificationCriterion } from "@orbe/shared";
 import { Button, Field, Select, Textarea } from "@/components/ui";
 import { DEFAULT_SALES_PLAYBOOK } from "@/lib/sales/playbook";
+import { scoreClient } from "@/lib/sales/score-client";
 
 const CRITERIA: { id: SalesQualificationCriterion; label: string }[] =
   DEFAULT_SALES_PLAYBOOK.qualificationCriteria.map((c) => ({
@@ -15,13 +16,15 @@ type Props = {
   action: (formData: FormData) => void | Promise<void>;
   initial?: SalesQualification;
   priceBook?: { id: string; name: string; minPrice: number; level: string }[];
+  learnedEvents?: { verdict: string; payload: Record<string, unknown> }[];
 };
 
-export function SalesQualificationForm({ action, initial, priceBook = [] }: Props) {
+export function SalesQualificationForm({ action, initial, priceBook = [], learnedEvents = [] }: Props) {
   const [data, setData] = useState<SalesQualification>(
     initial ?? { decision: "pendente", criteria: {}, offerLevel: "diagnostico" },
   );
   const payload = useMemo(() => JSON.stringify(data), [data]);
+  const live = useMemo(() => scoreClient(data, learnedEvents), [data, learnedEvents]);
 
   return (
     <form action={action} className="grid gap-4">
@@ -31,6 +34,15 @@ export function SalesQualificationForm({ action, initial, priceBook = [] }: Prop
         <p className="font-semibold text-[#012245]">{DEFAULT_SALES_PLAYBOOK.opening.title}</p>
         <p className="mt-2">{DEFAULT_SALES_PLAYBOOK.opening.script}</p>
       </div>
+
+      <details className="rounded-2xl border border-slate-200 p-4">
+        <summary className="cursor-pointer font-semibold text-[#012245]">5 abas da metodologia de vendas</summary>
+        <ol className="mt-3 list-decimal space-y-1 pl-5 text-sm text-slate-600">
+          {DEFAULT_SALES_PLAYBOOK.sheets.map((sheet) => (
+            <li key={sheet}>{sheet}</li>
+          ))}
+        </ol>
+      </details>
 
       <details className="rounded-2xl border border-slate-200 p-4">
         <summary className="cursor-pointer font-semibold text-[#012245]">Roteiro de conversa</summary>
@@ -90,6 +102,27 @@ export function SalesQualificationForm({ action, initial, priceBook = [] }: Prop
         </Select>
       </Field>
 
+      <div
+        className={`rounded-2xl border p-4 text-sm ${
+          live.label === "ideal"
+            ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+            : live.label === "problema"
+              ? "border-red-200 bg-red-50 text-red-800"
+              : "border-slate-200 bg-slate-50 text-slate-700"
+        }`}
+      >
+        <p className="font-semibold">
+          Sinalizacao: cliente {live.label} ({live.score}/100)
+        </p>
+        <ul className="mt-2 list-disc pl-5">
+          {live.reasons.map((r) => (
+            <li key={r}>{r}</li>
+          ))}
+        </ul>
+        <p className="mt-2 text-xs">
+          Historico: {learnedEvents.length} decisao(oes) admitir/recusar. Apos 3 casos os pesos dos criterios se ajustam.
+        </p>
+      </div>
       <Field label="Nivel de oferta">
         <Select
           value={data.offerLevel ?? "diagnostico"}
@@ -100,9 +133,35 @@ export function SalesQualificationForm({ action, initial, priceBook = [] }: Prop
             }))
           }
         >
-          <option value="diagnostico">Diagnostico</option>
-          <option value="ciclo">Ciclo ORBE</option>
+          <option value="diagnostico">Diagnostico avulso</option>
+          <option value="ciclo">Ciclo fee fixo</option>
           <option value="premium">Premium</option>
+          <option value="success_fee">Success-fee 15% EBITDA</option>
+        </Select>
+      </Field>
+      <Field label="Inicio da cobranca (success-fee)">
+        <Select
+          value={data.billingStart ?? "m6"}
+          onChange={(e) =>
+            setData((prev) => ({ ...prev, billingStart: e.target.value as "m1" | "m6" }))
+          }
+        >
+          <option value="m6">Carencia: 1o pagamento no 6o mes (contrato Soluciona)</option>
+          <option value="m1">Pagar 15% desde o 1o mes</option>
+        </Select>
+      </Field>
+      <Field label="Momento de fechamento">
+        <Select
+          value={data.closingMoment ?? "primeira_reuniao"}
+          onChange={(e) =>
+            setData((prev) => ({
+              ...prev,
+              closingMoment: e.target.value as "primeira_reuniao" | "followup",
+            }))
+          }
+        >
+          <option value="primeira_reuniao">Ja na reuniao estrategica</option>
+          <option value="followup">Em follow-up</option>
         </Select>
       </Field>
 

@@ -223,9 +223,36 @@ export type SalesQualificationCriterion =
 export type SalesQualification = {
   decision?: "admitir" | "nao_admitir" | "pendente";
   notes?: string;
-  offerLevel?: "diagnostico" | "ciclo" | "premium";
+  offerLevel?: "diagnostico" | "ciclo" | "premium" | "success_fee";
+  billingStart?: "m1" | "m6";
+  closingMoment?: "primeira_reuniao" | "followup";
+  scoreLabel?: "ideal" | "neutro" | "problema";
+  score?: number;
   criteria?: Partial<Record<SalesQualificationCriterion, "positivo" | "negativo" | "neutro">>;
 };
+
+export const SESSION_KINDS = ["estrategica", "followup_fechamento", "ciclo"] as const;
+export type SessionKind = (typeof SESSION_KINDS)[number];
+export const SESSION_KIND_LABELS: Record<SessionKind, string> = {
+  estrategica: "Reuniao estrategica",
+  followup_fechamento: "Follow-up / fechamento",
+  ciclo: "Ciclo ORBE",
+};
+
+export const BRAND = {
+  legalName: "Daniel Herculis Assessoria e Consultoria Financeira e Estrategica",
+  shortName: "Daniel Herculis",
+  cnpj: "64.860.330/0001-30",
+  city: "Catanduva - SP",
+  address: "Rua Doutor Wander Pellizzon, 85, Sala 1, CEP 15802-326",
+  email: "daniel@danielherculis.com.br",
+  slogan: "Assessoria e Consultoria Financeira e Estrategica",
+  colors: {
+    navy: "#012245",
+    teal: "#2e7271",
+    gold: "#c8a04c",
+  },
+} as const;
 
 export type OrgPriceBookItem = {
   id: string;

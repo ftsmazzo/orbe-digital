@@ -28,9 +28,17 @@ export default async function ReportsPage({ params }: { params: Promise<{ id: st
                 <h2 className="text-lg font-semibold text-[#012245]">{report.title}</h2>
                 <p className="text-sm text-slate-500">{formatDateTime(report.createdAt)} · {report.approved ? "Aprovado" : "Rascunho"}</p>
               </div>
-              <form action={approveReport.bind(null, report.id, id)}>
-                <Button>{report.approved ? "Aprovado" : "Aprovar"}</Button>
-              </form>
+              <div className="flex gap-2">
+                <a
+                  href={`/print/report/${report.id}`}
+                  className="rounded-xl border border-[#012245]/15 px-4 py-2 text-sm font-semibold text-[#012245]"
+                >
+                  Imprimir PDF
+                </a>
+                <form action={approveReport.bind(null, report.id, id)}>
+                  <Button>{report.approved ? "Aprovado" : "Aprovar"}</Button>
+                </form>
+              </div>
             </div>
             <form action={updateReport.bind(null, report.id, id)} className="mt-4 grid gap-3">
               <Field label="Titulo"><Input name="title" defaultValue={report.title} /></Field>

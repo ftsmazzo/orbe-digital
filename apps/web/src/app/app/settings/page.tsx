@@ -56,6 +56,11 @@ export default async function SettingsPage() {
           <p className="mt-4 text-xs text-slate-500">
             O roteiro completo aparece no checklist do cliente (lead).
           </p>
+          <p className="mt-4">
+            <a className="text-sm font-semibold text-[#2e7271]" href="/app/settings/knowledge">
+              Acervo e fichas de principio
+            </a>
+          </p>
         </Card>
       </div>
     </>

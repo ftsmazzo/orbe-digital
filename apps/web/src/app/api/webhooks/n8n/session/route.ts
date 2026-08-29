@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { consultingSessions, db, diagnostics } from "@/lib/db";
 import { extractDiagnosticFromTranscript } from "@/lib/agents/extract";
+import { retrieveKnowledge } from "@/lib/knowledge/retrieve";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -18,7 +19,11 @@ export async function POST(request: Request) {
   const [session] = await db.select().from(consultingSessions).where(eq(consultingSessions.id, sessionId)).limit(1);
   if (!session) return NextResponse.json({ error: "Sessao nao encontrada" }, { status: 404 });
 
-  const extracted = await extractDiagnosticFromTranscript(transcript, body.clientName ?? "Cliente");
+  const knowledge = await retrieveKnowledge({
+    orgId: session.organizationId,
+    query: transcript.slice(0, 2000),
+  });
+  const extracted = await extractDiagnosticFromTranscript(transcript, body.clientName ?? "Cliente", knowledge);
   await db
     .update(consultingSessions)
     .set({

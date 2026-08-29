@@ -8,16 +8,21 @@ import {
   actionItems,
   clientArtifacts,
   clientPeople,
+  clientContracts,
+  clientFinancials,
   clients,
   consultingSessions,
   db,
   diagnostics,
   goals,
   indicators,
+  knowledgeChunks,
+  knowledgeSources,
   marketInsights,
   organizations,
   proposals,
   reports,
+  salesScoreEvents,
 } from "@/lib/db";
 import { extractDiagnosticFromTranscript, mockTranscript } from "@/lib/agents/extract";
 import { researchMarketEnriched, type MarketScope } from "@/lib/agents/market-research-apify";
@@ -28,6 +33,11 @@ import { computePayrollCost } from "@/lib/finance/payroll-cost";
 import { computeValuation, type ValuationInput } from "@/lib/finance/valuation";
 import { computeWorkingCapital, type WorkingCapitalInput } from "@/lib/finance/working-capital";
 import { mergeOrgSettings } from "@/lib/sales/playbook";
+import { retrieveKnowledge } from "@/lib/knowledge/retrieve";
+import { generateContractHtml } from "@/lib/sales/contract";
+import { scoreClient } from "@/lib/sales/score-client";
+import { computeEbitda } from "@/lib/finance/ebitda";
+import { wrapDhDocument } from "@/lib/brand/document";
 import { getCurrentOrg } from "@/lib/org";
 import { putObject } from "@/lib/storage";
 import type { DiagnosticPayload } from "@orbe/shared";
@@ -124,7 +134,11 @@ async function persistTranscriptAndDiagnostic(opts: {
   clientName: string;
   transcript: string;
 }) {
-  const extracted = await extractDiagnosticFromTranscript(opts.transcript, opts.clientName);
+  const knowledge = await retrieveKnowledge({
+    orgId: opts.orgId,
+    query: opts.transcript.slice(0, 2000),
+  });
+  const extracted = await extractDiagnosticFromTranscript(opts.transcript, opts.clientName, knowledge);
   await db
     .update(consultingSessions)
     .set({
@@ -170,6 +184,7 @@ export async function createSession(formData: FormData) {
       organizationId: orgId,
       clientId,
       title: text(formData, "title") ?? `Sessao ORBE - ${client.name}`,
+      kind: text(formData, "kind") ?? "ciclo",
       consentGiven: formData.get("consentGiven") === "on",
       consentAt: formData.get("consentGiven") === "on" ? new Date() : undefined,
       status: hasAudio || pastedTranscript ? "processando" : "gravando",
@@ -284,7 +299,11 @@ export async function reextractSessionDiagnostic(sessionId: string) {
     .limit(1);
   if (!client) return;
 
-  const extracted = await extractDiagnosticFromTranscript(session.transcriptRaw, client.name);
+  const knowledge = await retrieveKnowledge({
+    orgId,
+    query: session.transcriptRaw.slice(0, 2000),
+  });
+  const extracted = await extractDiagnosticFromTranscript(session.transcriptRaw, client.name, knowledge);
 
   const [existing] = await db
     .select()
@@ -436,6 +455,10 @@ export async function runMarketResearch(clientId: string, formData: FormData) {
     .limit(1);
   if (!client) return;
 
+  const knowledge = await retrieveKnowledge({
+    orgId,
+    query: `${client.name} ${client.sector ?? ""} mercado ${scope}`,
+  });
   const research = await researchMarketEnriched({
     clientName: client.name,
     sector: text(formData, "sector") ?? client.sector,
@@ -443,6 +466,7 @@ export async function runMarketResearch(clientId: string, formData: FormData) {
     scope,
     region: text(formData, "region") ?? client.city,
     website: text(formData, "website"),
+    knowledge,
   });
 
   await db.insert(marketInsights).values({
@@ -541,6 +565,7 @@ export async function generateReport(clientId: string) {
   if (!client) return;
   const indicatorRows = await db.select().from(indicators).where(and(eq(indicators.clientId, clientId), eq(indicators.organizationId, orgId)));
   const actionRows = await db.select().from(actionItems).where(and(eq(actionItems.clientId, clientId), eq(actionItems.organizationId, orgId)));
+  const knowledge = await retrieveKnowledge({ orgId, query: `relatorio ${client.name}` });
   const [report] = await db
     .insert(reports)
     .values({
@@ -548,7 +573,11 @@ export async function generateReport(clientId: string) {
       clientId,
       type: "mensal",
       title: `Relatorio ORBE - ${client.name}`,
-      contentHtml: generateReportHtml(client, indicatorRows, actionRows),
+      contentHtml: wrapDhDocument({
+        title: `Relatorio ORBE - ${client.name}`,
+        clientName: client.name,
+        bodyHtml: generateReportHtml(client, indicatorRows, actionRows, knowledge),
+      }),
     })
     .returning();
   revalidatePath(`/app/clients/${clientId}/reports`);
@@ -583,13 +612,18 @@ export async function generateProposal(clientId: string) {
     .where(and(eq(diagnostics.clientId, clientId), eq(diagnostics.organizationId, orgId)))
     .orderBy(desc(diagnostics.createdAt))
     .limit(1);
+  const knowledge = await retrieveKnowledge({ orgId, query: `proposta ${client.name}` });
   const [proposal] = await db
     .insert(proposals)
     .values({
       organizationId: orgId,
       clientId,
       title: `Proposta ORBE - ${client.name}`,
-      contentHtml: generateProposalHtml(client, diagnostic),
+      contentHtml: wrapDhDocument({
+        title: `Proposta ORBE - ${client.name}`,
+        clientName: client.name,
+        bodyHtml: generateProposalHtml(client, diagnostic, knowledge),
+      }),
       status: "rascunho",
     })
     .returning();
@@ -621,10 +655,33 @@ export async function saveSalesQualification(clientId: string, formData: FormDat
   } catch {
     qualification = {};
   }
+  const events = await db
+    .select()
+    .from(salesScoreEvents)
+    .where(eq(salesScoreEvents.organizationId, orgId));
+  const scored = scoreClient(qualification, events.map((e) => ({ verdict: e.verdict, payload: e.payload })));
+  qualification.score = scored.score;
+  qualification.scoreLabel = scored.label;
   await db
     .update(clients)
     .set({ salesQualification: qualification, updatedAt: new Date() })
     .where(and(eq(clients.id, clientId), eq(clients.organizationId, orgId)));
+  if (qualification.decision === "admitir" || qualification.decision === "nao_admitir") {
+    const [last] = await db
+      .select()
+      .from(salesScoreEvents)
+      .where(and(eq(salesScoreEvents.organizationId, orgId), eq(salesScoreEvents.clientId, clientId)))
+      .orderBy(desc(salesScoreEvents.createdAt))
+      .limit(1);
+    if (!last || last.verdict !== qualification.decision) {
+      await db.insert(salesScoreEvents).values({
+        organizationId: orgId,
+        clientId,
+        verdict: qualification.decision,
+        payload: qualification as Record<string, unknown>,
+      });
+    }
+  }
   revalidatePath(`/app/clients/${clientId}`);
 }
 
@@ -887,4 +944,82 @@ async function refreshPayrollArtifact(clientId: string, orgId: string) {
       payload,
     });
   }
+}
+
+export async function saveMonthlyEbitda(clientId: string, formData: FormData) {
+  const { orgId } = await getCurrentOrg();
+  const row = {
+    revenueNet: Number(text(formData, "revenueNet") ?? 0),
+    cpv: Number(text(formData, "cpv") ?? 0),
+    opex: Number(text(formData, "opex") ?? 0),
+    depreciation: Number(text(formData, "depreciation") ?? 0),
+    amortization: Number(text(formData, "amortization") ?? 0),
+  };
+  await db.insert(clientFinancials).values({
+    organizationId: orgId,
+    clientId,
+    year: numberValue(formData, "year") ?? new Date().getFullYear(),
+    month: numberValue(formData, "month") ?? new Date().getMonth() + 1,
+    revenueNet: String(row.revenueNet),
+    cpv: String(row.cpv),
+    opex: String(row.opex),
+    depreciation: String(row.depreciation),
+    amortization: String(row.amortization),
+    ebitda: String(computeEbitda(row)),
+    notes: text(formData, "notes"),
+  });
+  revalidatePath(`/app/clients/${clientId}/finance/ebitda`);
+}
+
+export async function generateClientContract(clientId: string, formData: FormData) {
+  const { orgId } = await getCurrentOrg();
+  const [client] = await db
+    .select()
+    .from(clients)
+    .where(and(eq(clients.id, clientId), eq(clients.organizationId, orgId)))
+    .limit(1);
+  if (!client) return;
+  const billingStart = (text(formData, "billingStart") as "m1" | "m6") ?? "m6";
+  const html = generateContractHtml({
+    clientName: client.name,
+    clientCnpj: client.cnpj ?? undefined,
+    billingStart,
+  });
+  const [row] = await db
+    .insert(clientContracts)
+    .values({
+      organizationId: orgId,
+      clientId,
+      title: `Contrato success-fee 15% EBITDA (${billingStart}) — ${client.name}`,
+      billingStart,
+      contentHtml: html,
+      startDate: parseDate(text(formData, "startDate")),
+    })
+    .returning();
+  await db.update(clients).set({ stage: "contrato", updatedAt: new Date() }).where(eq(clients.id, clientId));
+  revalidatePath(`/app/clients/${clientId}/contracts`);
+  redirect(`/print/contract/${row.id}`);
+}
+
+export async function addKnowledgeNote(formData: FormData) {
+  const { orgId } = await getCurrentOrg();
+  const title = text(formData, "title") ?? "Nota de acervo";
+  const [source] = await db
+    .insert(knowledgeSources)
+    .values({
+      organizationId: orgId,
+      title,
+      author: text(formData, "author"),
+      area: text(formData, "area") ?? "principios",
+      weight: numberValue(formData, "weight") ?? 1,
+      kind: "note",
+    })
+    .returning();
+  await db.insert(knowledgeChunks).values({
+    organizationId: orgId,
+    sourceId: source.id,
+    heading: title,
+    content: text(formData, "content") ?? "",
+  });
+  revalidatePath("/app/settings/knowledge");
 }

@@ -1,6 +1,6 @@
 /* ORBE Digital — SW só para assets estáticos (nunca HTML/RSC: quebra Server Actions após deploy) */
 const CACHE = "orbe-static-v2";
-const PRECACHE = ["/icons/icon.svg", "/manifest.webmanifest"];
+const PRECACHE = ["/icons/icon-orbe.png", "/icons/icon.svg", "/manifest.webmanifest"];
 
 function isStaticAsset(url) {
   return (

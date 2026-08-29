@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { and, desc, eq } from "drizzle-orm";
 import { clients, consultingSessions, db, diagnostics } from "@/lib/db";
 import { extractDiagnosticFromTranscript, mockTranscript } from "@/lib/agents/extract";
+import { retrieveKnowledge } from "@/lib/knowledge/retrieve";
 import { getCurrentOrg, requireOrg } from "@/lib/org";
 import { putObject } from "@/lib/storage";
 
@@ -58,6 +59,7 @@ export async function POST(request: Request) {
         organizationId: orgId,
         clientId,
         title: String(formData.get("title") || `Sessao ORBE - ${client.name}`),
+        kind: String(formData.get("kind") || "ciclo"),
         consentGiven: consent,
         consentAt: consent ? new Date() : undefined,
         status: hasAudio || pastedTranscript ? "processando" : "gravando",
@@ -66,7 +68,8 @@ export async function POST(request: Request) {
       .returning();
 
     if (pastedTranscript && !hasAudio) {
-      const extracted = await extractDiagnosticFromTranscript(pastedTranscript, client.name);
+      const knowledge = await retrieveKnowledge({ orgId, query: pastedTranscript.slice(0, 2000) });
+      const extracted = await extractDiagnosticFromTranscript(pastedTranscript, client.name, knowledge);
       await db
         .update(consultingSessions)
         .set({
@@ -135,7 +138,8 @@ export async function POST(request: Request) {
           }
         } else {
           const transcript = mockTranscript(client.name);
-          const extracted = await extractDiagnosticFromTranscript(transcript, client.name);
+          const knowledge = await retrieveKnowledge({ orgId, query: transcript });
+          const extracted = await extractDiagnosticFromTranscript(transcript, client.name, knowledge);
           await db
             .update(consultingSessions)
             .set({

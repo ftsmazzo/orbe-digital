@@ -24,4 +24,13 @@ Contexto/*.xlsx
 Contexto/*.xlsm
 Contexto/*.pdf
 Contexto/*.ppsx
+Contexto/*.cdr*
+Contexto/*.zip
 Contexto/_extract*
+Contexto/_logo_previews/
+Contexto/META-INF/
+Contexto/color/
+Contexto/content/
+Contexto/previews/
+Contexto/styles/
+Contexto/mimetype

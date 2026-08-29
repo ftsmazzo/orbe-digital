@@ -36,7 +36,15 @@ export default async function ClientDashboardPage({ params }: { params: Promise<
 
   return (
     <>
-      <PageHeader title={`Dashboard - ${client.name}`} description="Mapa BCS: planejado x realizado por perspectiva + alertas." />
+      <PageHeader
+        title={`Dashboard - ${client.name}`}
+        description="Mapa BSC: planejado x realizado por perspectiva + alertas."
+        action={
+          <a className="rounded-xl bg-[#012245] px-4 py-2 text-sm font-semibold text-white" href={`/print/dashboard/${id}`}>
+            Imprimir PDF
+          </a>
+        }
+      />
       <div className="grid gap-6 md:grid-cols-3">
         <Card><p className="text-sm text-slate-500">Indicadores</p><strong className="mt-2 block text-3xl text-[#012245]">{indicatorRows.length}</strong></Card>
         <Card><p className="text-sm text-slate-500">Acoes concluidas</p><strong className="mt-2 block text-3xl text-[#2e7271]">{completed}</strong></Card>

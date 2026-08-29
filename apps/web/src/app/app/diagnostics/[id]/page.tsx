@@ -50,6 +50,13 @@ export default async function DiagnosticDetailPage({ params }: { params: Promise
         draftPlanAction={draftPlanFromDiagnostic.bind(null, id)}
         planningHref={client ? `/app/clients/${client.id}/planning` : "/app/clients"}
       />
+      {client ? (
+        <p className="mt-4">
+          <a className="text-sm font-semibold text-[#2e7271]" href={`/print/diagnostic/${diagnostic.id}`}>
+            Imprimir diagnostico (PDF)
+          </a>
+        </p>
+      ) : null}
     </>
   );
 }

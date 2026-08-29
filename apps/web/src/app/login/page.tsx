@@ -6,7 +6,9 @@ export default function LoginPage() {
     <main className="min-h-screen bg-[#f3f1ec] px-6 py-12 text-[#012245]">
       <div className="mx-auto grid max-w-5xl overflow-hidden rounded-3xl bg-white shadow-xl md:grid-cols-[1fr_420px]">
         <section className="bg-[#012245] p-10 text-white">
-          <p className="text-sm font-semibold uppercase tracking-[0.3em] text-[#c8a04c]">ORBE Digital</p>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/brand/logo-orbe.png" alt="ORBE" className="h-16 w-16 rounded-2xl bg-white object-cover" />
+          <p className="mt-4 text-sm font-semibold uppercase tracking-[0.3em] text-[#c8a04c]">ORBE Digital</p>
           <h1 className="mt-8 text-4xl font-semibold leading-tight">Gestao consultiva da conversa ao plano de execucao.</h1>
           <p className="mt-6 max-w-xl text-white/75">
             Acesse clientes, sessoes gravadas, diagnosticos, indicadores, acoes, relatorios e propostas em um unico fluxo.

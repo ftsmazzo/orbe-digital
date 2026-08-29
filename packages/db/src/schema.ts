@@ -203,6 +203,8 @@ export const consultingSessions = pgTable("consulting_sessions", {
     .notNull()
     .references(() => clients.id, { onDelete: "cascade" }),
   title: text("title").notNull(),
+  /** estrategica | followup_fechamento | ciclo */
+  kind: text("kind").default("ciclo").notNull(),
   consentGiven: boolean("consent_given").default(false).notNull(),
   consentAt: timestamp("consent_at", { withTimezone: true }),
   audioKey: text("audio_key"),
@@ -348,6 +350,85 @@ export const marketInsights = pgTable("market_insights", {
   region: text("region"),
   sector: text("sector"),
   summary: text("summary").notNull(),
+  payload: jsonb("payload").$type<Record<string, unknown>>().default({}).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+/** DRE mensal do cliente para honorarios 15% EBITDA. */
+export const clientFinancials = pgTable("client_financials", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  organizationId: uuid("organization_id")
+    .notNull()
+    .references(() => organizations.id, { onDelete: "cascade" }),
+  clientId: uuid("client_id")
+    .notNull()
+    .references(() => clients.id, { onDelete: "cascade" }),
+  year: integer("year").notNull(),
+  month: integer("month").notNull(),
+  revenueNet: numeric("revenue_net", { precision: 14, scale: 2 }).default("0").notNull(),
+  cpv: numeric("cpv", { precision: 14, scale: 2 }).default("0").notNull(),
+  opex: numeric("opex", { precision: 14, scale: 2 }).default("0").notNull(),
+  depreciation: numeric("depreciation", { precision: 14, scale: 2 }).default("0").notNull(),
+  amortization: numeric("amortization", { precision: 14, scale: 2 }).default("0").notNull(),
+  ebitda: numeric("ebitda", { precision: 14, scale: 2 }).default("0").notNull(),
+  notes: text("notes"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const clientContracts = pgTable("client_contracts", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  organizationId: uuid("organization_id")
+    .notNull()
+    .references(() => organizations.id, { onDelete: "cascade" }),
+  clientId: uuid("client_id")
+    .notNull()
+    .references(() => clients.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  billingStart: text("billing_start").default("m6").notNull(),
+  ebitdaShare: numeric("ebitda_share", { precision: 6, scale: 4 }).default("0.15").notNull(),
+  startDate: timestamp("start_date", { withTimezone: true }),
+  status: text("status").default("rascunho").notNull(),
+  contentHtml: text("content_html").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const knowledgeSources = pgTable("knowledge_sources", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  organizationId: uuid("organization_id")
+    .notNull()
+    .references(() => organizations.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  author: text("author"),
+  area: text("area"),
+  weight: integer("weight").default(1).notNull(),
+  kind: text("kind").default("card").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const knowledgeChunks = pgTable("knowledge_chunks", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  organizationId: uuid("organization_id")
+    .notNull()
+    .references(() => organizations.id, { onDelete: "cascade" }),
+  sourceId: uuid("source_id")
+    .notNull()
+    .references(() => knowledgeSources.id, { onDelete: "cascade" }),
+  heading: text("heading"),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const salesScoreEvents = pgTable("sales_score_events", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  organizationId: uuid("organization_id")
+    .notNull()
+    .references(() => organizations.id, { onDelete: "cascade" }),
+  clientId: uuid("client_id")
+    .notNull()
+    .references(() => clients.id, { onDelete: "cascade" }),
+  verdict: text("verdict").notNull(),
   payload: jsonb("payload").$type<Record<string, unknown>>().default({}).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });

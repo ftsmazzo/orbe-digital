@@ -5,7 +5,7 @@ type Client = typeof clients.$inferSelect;
 type Indicator = typeof indicators.$inferSelect;
 type ActionItem = typeof actionItems.$inferSelect;
 
-export function generateReportHtml(client: Client, indicatorRows: Indicator[], actionRows: ActionItem[]) {
+export function generateReportHtml(client: Client, indicatorRows: Indicator[], actionRows: ActionItem[], knowledge?: string) {
   const overdue = actionRows.filter((item) => item.status === "atrasado").length;
   const completed = actionRows.filter((item) => item.status === "concluido").length;
 
@@ -34,7 +34,8 @@ export function generateReportHtml(client: Client, indicatorRows: Indicator[], a
           .join("")}
       </ul>
       <h2>Recomendacao</h2>
-      <p>Manter cadencia mensal de revisao dos indicadores, destravar acoes atrasadas e registrar evidencias de evolucao.</p>
+      <p>Manter cadencia mensal de revisao dos indicadores, destravar acoes atrasadas e registrar evidencias de evolucao. Sem promessa de faturamento.</p>
+      ${knowledge ? `<h2>Principios de referencia</h2><p>${knowledge.slice(0, 1200).replaceAll("<", "&lt;")}</p>` : ""}
     </article>
   `;
 }

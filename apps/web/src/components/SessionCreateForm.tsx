@@ -85,6 +85,19 @@ export function SessionCreateForm({ clients }: { clients: ClientOption[] }) {
       </label>
 
       <label className="grid gap-1 text-sm font-medium text-slate-700">
+        <span>Tipo de reuniao</span>
+        <select
+          name="kind"
+          defaultValue="estrategica"
+          className="rounded-xl border border-slate-200 px-3 py-2 outline-none focus:border-[#2e7271]"
+        >
+          <option value="estrategica">Reuniao estrategica (1a)</option>
+          <option value="followup_fechamento">Follow-up / fechamento</option>
+          <option value="ciclo">Ciclo ORBE</option>
+        </select>
+      </label>
+
+      <label className="grid gap-1 text-sm font-medium text-slate-700">
         <span>Titulo</span>
         <input
           name="title"
