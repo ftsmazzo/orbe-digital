@@ -45,9 +45,13 @@ N8N_WEBHOOK_STT=https://pazotti-n8n.kxryyk.easypanel.host/webhook/orbe-stt
 N8N_CALLBACK_SECRET=orbe-callback-secret
 ANTHROPIC_API_KEY=<sua-chave-claude>
 ANTHROPIC_MODEL=claude-sonnet-4-5
+OPENROUTER_API_KEY=<sua-chave-openrouter>
+OPENROUTER_MODEL=anthropic/claude-sonnet-4.5
 APIFY_TOKEN=<seu-token-apify>
 APIFY_GOOGLE_SEARCH_ACTOR=apify/google-search-scraper
 APIFY_WEBSITE_CRAWLER_ACTOR=apify/website-content-crawler
+MISTRAL_API_KEY=<ocr-pdf-dre-contratos>
+MISTRAL_OCR_MODEL=mistral-ocr-latest
 ```
 
 > **IA / pesquisa:** sem `ANTHROPIC_API_KEY` o diagnostico cai na heuristica; sem `APIFY_TOKEN` a pesquisa R cai no rascunho heuristico. Colar as chaves no EasyPanel (nao no git).

@@ -89,7 +89,7 @@ export async function createClient(formData: FormData) {
     .returning();
 
   revalidatePath("/app/clients");
-  redirect(`/app/clients/${client.id}`);
+  redirect(`/app/clients/${client.id}/operate`);
 }
 
 export async function updateClient(clientId: string, formData: FormData) {

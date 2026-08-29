@@ -6,7 +6,15 @@ import { SessionRecorder } from "@/components/SessionRecorder";
 
 type ClientOption = { id: string; name: string };
 
-export function SessionCreateForm({ clients }: { clients: ClientOption[] }) {
+export function SessionCreateForm({
+  clients,
+  lockedClientId,
+  redirectTo,
+}: {
+  clients: ClientOption[];
+  lockedClientId?: string;
+  redirectTo?: string;
+}) {
   const router = useRouter();
   const [recordingFile, setRecordingFile] = useState<File | null>(null);
   const [error, setError] = useState("");
@@ -37,6 +45,9 @@ export function SessionCreateForm({ clients }: { clients: ClientOption[] }) {
       return;
     }
 
+    if (lockedClientId) {
+      formData.set("clientId", lockedClientId);
+    }
     if (!formData.get("clientId")) {
       setError("Selecione um cliente.");
       return;
@@ -57,7 +68,7 @@ export function SessionCreateForm({ clients }: { clients: ClientOption[] }) {
       }
 
       const sessionId = payload.id as string | undefined;
-      router.push(sessionId ? `/app/sessions/${sessionId}` : "/app/sessions");
+      router.push(redirectTo ?? (sessionId ? `/app/sessions/${sessionId}` : "/app/sessions"));
       router.refresh();
     } catch {
       setError("Falha de rede ao criar a sessao. Verifique a conexao e tente de novo.");
@@ -68,21 +79,25 @@ export function SessionCreateForm({ clients }: { clients: ClientOption[] }) {
 
   return (
     <form onSubmit={onSubmit} className="mt-4 grid gap-3">
-      <label className="grid gap-1 text-sm font-medium text-slate-700">
-        <span>Cliente</span>
-        <select
-          name="clientId"
-          required
-          className="rounded-xl border border-slate-200 px-3 py-2 outline-none focus:border-[#2e7271]"
-        >
-          <option value="">Selecione</option>
-          {clients.map((client) => (
-            <option key={client.id} value={client.id}>
-              {client.name}
-            </option>
-          ))}
-        </select>
-      </label>
+      {lockedClientId ? (
+        <input type="hidden" name="clientId" value={lockedClientId} />
+      ) : (
+        <label className="grid gap-1 text-sm font-medium text-slate-700">
+          <span>Cliente</span>
+          <select
+            name="clientId"
+            required
+            className="rounded-xl border border-slate-200 px-3 py-2 outline-none focus:border-[#2e7271]"
+          >
+            <option value="">Selecione</option>
+            {clients.map((client) => (
+              <option key={client.id} value={client.id}>
+                {client.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
 
       <label className="grid gap-1 text-sm font-medium text-slate-700">
         <span>Tipo de reuniao</span>

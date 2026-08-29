@@ -38,7 +38,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
       <PageHeader
         title={client.name}
         description={`${CRM_STAGE_LABELS[client.stage]} · ${client.sector ?? "Setor nao informado"}`}
-        action={<LinkButton href={`/app/clients/${id}/planning`}>Abrir planejamento</LinkButton>}
+        action={<LinkButton href={`/app/clients/${id}/operate`}>Abrir operacao</LinkButton>}
       />
       <div className="grid gap-6 xl:grid-cols-[420px_1fr]">
         <div className="grid gap-6">
@@ -81,6 +81,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
           <Card>
             <h2 className="text-lg font-semibold text-[#012245]">Atalhos do ciclo</h2>
             <div className="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+              <LinkButton href={`/app/clients/${id}/operate`}>Cockpit</LinkButton>
               <LinkButton href="/app/sessions">Nova sessao</LinkButton>
               <LinkButton href={`/app/clients/${id}/actions`}>Acoes</LinkButton>
               <LinkButton href={`/app/clients/${id}/dashboard`}>Dashboard</LinkButton>

@@ -13,7 +13,7 @@ export default async function ClientsPage() {
 
   return (
     <>
-      <PageHeader title="Clientes" description="Gerencie o CRM consultivo e avance clientes pelo funil ORBE." />
+      <PageHeader title="Clientes" description="Clique no nome para operar (gravar / documento). Gestao fica no atalho." />
       <div className="grid gap-6 xl:grid-cols-[360px_1fr]">
         <Card>
           <h2 className="text-lg font-semibold text-[#012245]">Novo cliente</h2>
@@ -53,8 +53,9 @@ export default async function ClientsPage() {
                 ) : null}
                 {stageClients.map((client) => (
                   <div key={client.id} className="rounded-2xl border border-slate-100 p-4">
-                    <Link href={`/app/clients/${client.id}`} className="font-semibold text-[#012245] hover:underline">{client.name}</Link>
+                    <Link href={`/app/clients/${client.id}/operate`} className="font-semibold text-[#012245] hover:underline">{client.name}</Link>
                     <p className="mt-1 text-sm text-slate-500">{client.sector ?? "Setor nao informado"}</p>
+                    <Link href={`/app/clients/${client.id}`} className="mt-1 inline-block text-xs font-semibold text-[#2e7271]">Gestao</Link>
                     <form action={updateClientStage.bind(null, client.id)} className="mt-3">
                       <Select name="stage" defaultValue={client.stage} className="w-full text-sm">
                         {CRM_STAGES.map((option) => <option key={option} value={option}>{CRM_STAGE_LABELS[option as CrmStage]}</option>)}

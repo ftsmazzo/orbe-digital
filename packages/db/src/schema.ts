@@ -420,6 +420,29 @@ export const knowledgeChunks = pgTable("knowledge_chunks", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
+/** Inbox de documentos do cliente (DRE, contrato, organograma, anotacoes). */
+export const clientDocuments = pgTable("client_documents", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  organizationId: uuid("organization_id")
+    .notNull()
+    .references(() => organizations.id, { onDelete: "cascade" }),
+  clientId: uuid("client_id")
+    .notNull()
+    .references(() => clients.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  /** dre | contrato | organograma | anotacao | proposta | outro */
+  kind: text("kind").default("outro").notNull(),
+  mimeType: text("mime_type"),
+  storageKey: text("storage_key"),
+  extractedText: text("extracted_text"),
+  status: text("status").default("recebido").notNull(),
+  /** mistral | texto | heuristic */
+  source: text("source").default("upload").notNull(),
+  payload: jsonb("payload").$type<Record<string, unknown>>().default({}).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
 export const salesScoreEvents = pgTable("sales_score_events", {
   id: uuid("id").defaultRandom().primaryKey(),
   organizationId: uuid("organization_id")

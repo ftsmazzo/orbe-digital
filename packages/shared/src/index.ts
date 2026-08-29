@@ -269,6 +269,44 @@ export type OrgSettings = {
   localHolidays?: string[];
 };
 
+export const DOCUMENT_KINDS = [
+  "dre",
+  "contrato",
+  "organograma",
+  "anotacao",
+  "proposta",
+  "outro",
+] as const;
+export type DocumentKind = (typeof DOCUMENT_KINDS)[number];
+
+export const DOCUMENT_KIND_LABELS: Record<DocumentKind, string> = {
+  dre: "DRE / financeiro",
+  contrato: "Contrato",
+  organograma: "Organograma / equipe",
+  anotacao: "Anotacao",
+  proposta: "Proposta",
+  outro: "Outro",
+};
+
+export const OPERATE_STEPS = [
+  "capturar",
+  "diagnosticar",
+  "validar",
+  "planejar",
+  "propor",
+  "acompanhar",
+] as const;
+export type OperateStep = (typeof OPERATE_STEPS)[number];
+
+export const OPERATE_STEP_LABELS: Record<OperateStep, string> = {
+  capturar: "Capturar (gravar ou documento)",
+  diagnosticar: "Diagnosticar",
+  validar: "Validar diagnostico",
+  planejar: "Planejar metas e acoes",
+  propor: "Gerar proposta",
+  acompanhar: "Acompanhar ciclo",
+};
+
 export const ARTIFACT_KINDS = [
   "sales_qualification",
   "score360",
