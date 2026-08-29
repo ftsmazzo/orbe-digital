@@ -53,9 +53,16 @@ export default async function ClientsPage() {
                 ) : null}
                 {stageClients.map((client) => (
                   <div key={client.id} className="rounded-2xl border border-slate-100 p-4">
-                    <Link href={`/app/clients/${client.id}/operate`} className="font-semibold text-[#012245] hover:underline">{client.name}</Link>
+                    <p className="font-semibold text-[#012245]">{client.name}</p>
                     <p className="mt-1 text-sm text-slate-500">{client.sector ?? "Setor nao informado"}</p>
-                    <Link href={`/app/clients/${client.id}`} className="mt-1 inline-block text-xs font-semibold text-[#2e7271]">Gestao</Link>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <Link href={`/app/clients/${client.id}/operate`} className="rounded-xl bg-[#012245] px-3 py-1.5 text-xs font-semibold text-white">
+                        Operar
+                      </Link>
+                      <Link href={`/app/clients/${client.id}`} className="rounded-xl px-3 py-1.5 text-xs font-semibold text-[#2e7271]">
+                        Gestao
+                      </Link>
+                    </div>
                     <form action={updateClientStage.bind(null, client.id)} className="mt-3">
                       <Select name="stage" defaultValue={client.stage} className="w-full text-sm">
                         {CRM_STAGES.map((option) => <option key={option} value={option}>{CRM_STAGE_LABELS[option as CrmStage]}</option>)}
