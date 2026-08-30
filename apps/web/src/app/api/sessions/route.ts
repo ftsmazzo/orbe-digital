@@ -4,6 +4,7 @@ import { clients, consultingSessions, db, diagnostics } from "@/lib/db";
 import { extractDiagnosticFromTranscript, mockTranscript } from "@/lib/agents/extract";
 import { retrieveKnowledge } from "@/lib/knowledge/retrieve";
 import { requireOrg } from "@/lib/org";
+import { persistFitFromTranscript } from "@/lib/sales/persist-fit";
 import { putObject } from "@/lib/storage";
 
 export const runtime = "nodejs";
@@ -53,13 +54,14 @@ export async function POST(request: Request) {
       );
     }
 
+    const sessionKind = String(formData.get("kind") || "estrategica");
     const [session] = await db
       .insert(consultingSessions)
       .values({
         organizationId: orgId,
         clientId,
         title: String(formData.get("title") || `Sessao ORBE - ${client.name}`),
-        kind: String(formData.get("kind") || "ciclo"),
+        kind: sessionKind,
         consentGiven: consent,
         consentAt: consent ? new Date() : undefined,
         status: hasAudio || pastedTranscript ? "processando" : "gravando",
@@ -90,6 +92,14 @@ export async function POST(request: Request) {
         risks: extracted.risks,
         openQuestions: extracted.openQuestions,
       });
+      await persistFitFromTranscript({
+        orgId,
+        clientId,
+        sessionId: session.id,
+        sessionKind,
+        transcript: pastedTranscript,
+        clientName: client.name,
+      }).catch((error) => console.error("[sessions] fit", error));
     } else if (hasAudio && audio instanceof File) {
       try {
         const stored = await putObject(audio, `sessions/${session.id}`);
@@ -160,6 +170,14 @@ export async function POST(request: Request) {
             risks: extracted.risks,
             openQuestions: extracted.openQuestions,
           });
+          await persistFitFromTranscript({
+            orgId,
+            clientId,
+            sessionId: session.id,
+            sessionKind,
+            transcript,
+            clientName: client.name,
+          }).catch((error) => console.error("[sessions] fit", error));
         }
       } catch (uploadError) {
         const message =

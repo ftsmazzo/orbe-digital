@@ -7,8 +7,10 @@ import {
   type DiagnosticPayload,
   type DocumentKind,
   type Perspective,
+  type SalesQualification,
 } from "@orbe/shared";
 import { CockpitDocumentForm, ConsultantDirectionForm } from "@/components/CockpitDocumentForm";
+import { ClientFitBanner } from "@/components/ClientFitBanner";
 import { CycleRunBanner } from "@/components/CycleRunBanner";
 import { OperateActionButton } from "@/components/OperateActionButton";
 import { SessionCreateForm } from "@/components/SessionCreateForm";
@@ -126,6 +128,12 @@ export default async function OperatePage({ params }: { params: Promise<{ id: st
         action={<LinkButton href={`/app/clients/${id}`}>Sala de gestao</LinkButton>}
       />
       <ClientWorkspaceNav clientId={id} current="operate" />
+
+      <ClientFitBanner
+        clientId={id}
+        qualification={(client.salesQualification ?? {}) as SalesQualification}
+        hasTranscript={sessionRows.some((row) => Boolean(row.transcriptRaw?.trim()))}
+      />
 
       <Card className="mb-6">
         <div className="flex flex-wrap items-start justify-between gap-4">

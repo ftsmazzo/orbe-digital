@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
-import { consultingSessions, db, diagnostics } from "@/lib/db";
+import { clients, consultingSessions, db, diagnostics } from "@/lib/db";
 import { extractDiagnosticFromTranscript } from "@/lib/agents/extract";
 import { retrieveKnowledge } from "@/lib/knowledge/retrieve";
+import { persistFitFromTranscript } from "@/lib/sales/persist-fit";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -46,6 +47,16 @@ export async function POST(request: Request) {
     risks: extracted.risks,
     openQuestions: extracted.openQuestions,
   });
+
+  const [client] = await db.select().from(clients).where(eq(clients.id, session.clientId)).limit(1);
+  await persistFitFromTranscript({
+    orgId: session.organizationId,
+    clientId: session.clientId,
+    sessionId,
+    sessionKind: session.kind,
+    transcript,
+    clientName: String(body.clientName ?? client?.name ?? "Cliente"),
+  }).catch((error) => console.error("[n8n/session] fit", error));
 
   return NextResponse.json({ ok: true, source: extracted.source });
 }

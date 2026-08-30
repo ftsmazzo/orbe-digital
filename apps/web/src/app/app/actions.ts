@@ -659,6 +659,16 @@ export async function saveSalesQualification(clientId: string, formData: FormDat
   const scored = scoreClient(qualification, events.map((e) => ({ verdict: e.verdict, payload: e.payload })));
   qualification.score = scored.score;
   qualification.scoreLabel = scored.label;
+  const [existingClient] = await db
+    .select({ salesQualification: clients.salesQualification })
+    .from(clients)
+    .where(and(eq(clients.id, clientId), eq(clients.organizationId, orgId)))
+    .limit(1);
+  const previous = (existingClient?.salesQualification ?? {}) as SalesQualification;
+  qualification.suggestedLabel = qualification.suggestedLabel ?? previous.suggestedLabel;
+  qualification.suggestedReasons = qualification.suggestedReasons ?? previous.suggestedReasons;
+  qualification.suggestedAt = qualification.suggestedAt ?? previous.suggestedAt;
+  qualification.suggestedSessionId = qualification.suggestedSessionId ?? previous.suggestedSessionId;
   await db
     .update(clients)
     .set({ salesQualification: qualification, updatedAt: new Date() })
@@ -680,6 +690,7 @@ export async function saveSalesQualification(clientId: string, formData: FormDat
     }
   }
   revalidatePath(`/app/clients/${clientId}`);
+  revalidatePath(`/app/clients/${clientId}/operate`);
 }
 
 export async function saveClientTeams(clientId: string, formData: FormData) {

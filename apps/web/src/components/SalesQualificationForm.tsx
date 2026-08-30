@@ -1,16 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { SalesQualification, SalesQualificationCriterion } from "@orbe/shared";
+import type { SalesQualification } from "@orbe/shared";
 import { Button, Field, Select, Textarea } from "@/components/ui";
 import { DEFAULT_SALES_PLAYBOOK } from "@/lib/sales/playbook";
 import { scoreClient } from "@/lib/sales/score-client";
-
-const CRITERIA: { id: SalesQualificationCriterion; label: string }[] =
-  DEFAULT_SALES_PLAYBOOK.qualificationCriteria.map((c) => ({
-    id: c.id as SalesQualificationCriterion,
-    label: c.label,
-  }));
 
 type Props = {
   action: (formData: FormData) => void | Promise<void>;
@@ -26,9 +20,41 @@ export function SalesQualificationForm({ action, initial, priceBook = [], learne
   const payload = useMemo(() => JSON.stringify(data), [data]);
   const live = useMemo(() => scoreClient(data, learnedEvents), [data, learnedEvents]);
 
+  const suggested = data.suggestedLabel ?? live.label;
+
   return (
     <form action={action} className="grid gap-4">
       <input type="hidden" name="salesQualification" value={payload} />
+
+      <div
+        className={`rounded-2xl border-2 p-4 text-sm ${
+          suggested === "ideal"
+            ? "border-emerald-300 bg-emerald-50 text-emerald-950"
+            : suggested === "problema"
+              ? "border-red-300 bg-red-50 text-red-950"
+              : "border-amber-300 bg-amber-50 text-amber-950"
+        }`}
+      >
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] opacity-70">Sugestao do sistema</p>
+        <p className="mt-1 text-xl font-semibold">
+          {suggested === "ideal"
+            ? "Cliente ideal"
+            : suggested === "problema"
+              ? "Cliente problema"
+              : "Ainda indefinido"}
+          {typeof live.score === "number" ? ` (${live.score}/100)` : ""}
+        </p>
+        <p className="mt-1 opacity-80">
+          {DEFAULT_SALES_PLAYBOOK.intellectualRule} Voce confirma admitir ou nao admitir abaixo.
+        </p>
+        {(data.suggestedReasons?.length ? data.suggestedReasons : live.reasons).length ? (
+          <ul className="mt-2 list-disc pl-5">
+            {(data.suggestedReasons?.length ? data.suggestedReasons : live.reasons).map((reason) => (
+              <li key={reason}>{reason}</li>
+            ))}
+          </ul>
+        ) : null}
+      </div>
 
       <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4 text-sm text-slate-700">
         <p className="font-semibold text-[#012245]">{DEFAULT_SALES_PLAYBOOK.opening.title}</p>
@@ -63,8 +89,10 @@ export function SalesQualificationForm({ action, initial, priceBook = [], learne
       <div>
         <h3 className="font-semibold text-[#012245]">Filtro admitir / nao admitir</h3>
         <div className="mt-3 grid gap-3">
-          {CRITERIA.map((c) => (
+          {DEFAULT_SALES_PLAYBOOK.qualificationCriteria.map((c) => (
             <Field key={c.id} label={c.label}>
+              <p className="mb-1 text-xs text-slate-500">Ideal: {c.ideal}</p>
+              <p className="mb-2 text-xs text-slate-500">Problema: {c.problema}</p>
               <Select
                 value={data.criteria?.[c.id] ?? "neutro"}
                 onChange={(e) =>
@@ -77,9 +105,9 @@ export function SalesQualificationForm({ action, initial, priceBook = [], learne
                   }))
                 }
               >
-                <option value="positivo">Sinal positivo</option>
-                <option value="neutro">Neutro</option>
-                <option value="negativo">Sinal de alerta</option>
+                <option value="positivo">Sinal de cliente ideal</option>
+                <option value="neutro">Neutro / sem evidencia</option>
+                <option value="negativo">Sinal de cliente problema</option>
               </Select>
             </Field>
           ))}
@@ -102,27 +130,9 @@ export function SalesQualificationForm({ action, initial, priceBook = [], learne
         </Select>
       </Field>
 
-      <div
-        className={`rounded-2xl border p-4 text-sm ${
-          live.label === "ideal"
-            ? "border-emerald-200 bg-emerald-50 text-emerald-900"
-            : live.label === "problema"
-              ? "border-red-200 bg-red-50 text-red-800"
-              : "border-slate-200 bg-slate-50 text-slate-700"
-        }`}
-      >
-        <p className="font-semibold">
-          Sinalizacao: cliente {live.label} ({live.score}/100)
-        </p>
-        <ul className="mt-2 list-disc pl-5">
-          {live.reasons.map((r) => (
-            <li key={r}>{r}</li>
-          ))}
-        </ul>
-        <p className="mt-2 text-xs">
-          Historico: {learnedEvents.length} decisao(oes) admitir/recusar. Apos 3 casos os pesos dos criterios se ajustam.
-        </p>
-      </div>
+      <p className="text-xs text-slate-500">
+        Historico: {learnedEvents.length} decisao(oes) admitir/recusar. Apos 3 casos os pesos dos criterios se ajustam.
+      </p>
       <Field label="Nivel de oferta">
         <Select
           value={data.offerLevel ?? "diagnostico"}

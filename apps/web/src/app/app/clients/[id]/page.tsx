@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { and, desc, eq } from "drizzle-orm";
 import { CRM_STAGE_LABELS, CRM_STAGES, type SalesQualification } from "@orbe/shared";
+import { ClientFitBanner } from "@/components/ClientFitBanner";
 import { SalesQualificationForm } from "@/components/SalesQualificationForm";
 import { ClientWorkspaceNav } from "@/components/ClientWorkspaceNav";
 import { Button, Card, Field, Input, LinkButton, PageHeader, Select, Textarea } from "@/components/ui";
@@ -42,6 +43,11 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
         action={<LinkButton href={`/app/clients/${id}/operate`}>Abrir operacao</LinkButton>}
       />
       <ClientWorkspaceNav clientId={id} current="" />
+      <ClientFitBanner
+        clientId={id}
+        qualification={(client.salesQualification ?? {}) as SalesQualification}
+        hasTranscript={sessionRows.some((row) => Boolean(row.transcriptRaw?.trim()))}
+      />
       <div className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
         <div className="grid gap-6">
           <Card>
@@ -65,7 +71,9 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
           </Card>
           <Card>
             <h2 className="text-lg font-semibold text-[#012245]">Qualificacao comercial</h2>
-            <p className="mt-1 text-sm text-slate-500">Playbook + filtro admitir (pre-ciclo).</p>
+            <p className="mt-1 text-sm text-slate-500">
+              A reuniao estrategica sugere o fit. Voce confirma admitir ou nao admitir.
+            </p>
             <div className="mt-4">
               <SalesQualificationForm
                 action={saveSalesQualification.bind(null, id)}

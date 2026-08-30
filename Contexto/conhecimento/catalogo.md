@@ -37,6 +37,7 @@ Salve a resposta como `extracoes/{id}.md` (nao como PDF). Depois: “compile a e
 | orcamento-ace | Planejamento orcamentario (ACE) | | E | financeira | 1 | inbox |
 | hill | O manuscrito original | Napoleon Hill | P | principios | 3 | inbox |
 | daniel-diretrizes | Playbook falado (4 audios) | Daniel Herculis | P | principios | 2 | tool |
+| vendas | Metodologia de vendas v1 | Daniel Herculis | P | principios | 2 | tool |
 | outsiders | The Outsiders | Thorndike | E | capital | 1 | inbox |
 | porter | Estrategia competitiva | Michael Porter | R | clientes | 1 | inbox |
 | kotler | Administracao de marketing 12ed | Kotler e Keller | B | clientes | 1 | inbox |

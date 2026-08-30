@@ -268,6 +268,10 @@ export type SalesQualification = {
   scoreLabel?: "ideal" | "neutro" | "problema";
   score?: number;
   criteria?: Partial<Record<SalesQualificationCriterion, "positivo" | "negativo" | "neutro">>;
+  suggestedLabel?: "ideal" | "neutro" | "problema";
+  suggestedReasons?: string[];
+  suggestedAt?: string;
+  suggestedSessionId?: string;
 };
 
 export const SESSION_KINDS = ["estrategica", "followup_fechamento", "ciclo"] as const;

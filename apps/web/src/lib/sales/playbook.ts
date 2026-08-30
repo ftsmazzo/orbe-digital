@@ -1,29 +1,40 @@
 import type { OrgPriceBookItem, OrgSettings } from "@orbe/shared";
 
-/** Playbook comercial padrao (Metodologia de vendas.xlsx). */
+/** Compilado de Metodologia de vendas_v1 — conversa estrategica + filtro ideal/problema. */
 export const DEFAULT_SALES_PLAYBOOK = {
-  version: 1,
+  version: 2,
+  sheets: [
+    "Conversa estrategica — roteiro (abertura, contexto, problema, impacto, visao, devolutiva, convite)",
+    "Conversa estrategica — fases (sobrevivencia / organizacao / crescimento) e investimento sem defesa",
+    "Entendendo o cliente — filtro ideal vs problema (nunca aceite quem voce nao respeita intelectualmente)",
+  ],
   opening: {
-    title: "Abertura – posicionamento",
+    title: "Abertura — controle e expectativa",
     script:
-      "O objetivo dessa conversa nao e vender nada agora. E entender seu negocio, identificar gargalos estrategicos e ver se faz sentido um acompanhamento.",
+      "O objetivo dessa conversa nao e vender nada agora. E entender o momento do negocio, identificar os principais gargalos e ver qual acompanhamento faz sentido — ou se faz. Se em algum momento eu achar que nao posso gerar valor real, vou te dizer com sinceridade.",
+    internal:
+      "Eu nao estou aqui para convencer. Estou aqui para diagnosticar, orientar e decidir se existe alinhamento.",
   },
+  goldenRule: "Voce conduz com perguntas. Quem fala mais e o cliente.",
+  intellectualRule: "Nunca aceite um cliente que voce nao respeita intelectualmente.",
+  businessPhases: ["sobrevivencia", "organizacao", "crescimento"] as const,
   sections: [
     {
       id: "contexto",
-      title: "Contexto do negocio",
+      title: "Contexto do negocio (5–8 min)",
       questions: [
-        "Hoje, como o negocio gera receita?",
-        "Quais sao suas principais linhas de faturamento?",
+        "Hoje, quanto o negocio fatura em media por mes?",
+        "Esse faturamento e previsivel ou oscila bastante?",
         "Quantas pessoas estao envolvidas na operacao?",
-        "Qual foi o faturamento medio dos ultimos meses?",
+        "Voce tem clareza de custos, margem e lucro?",
+        "Quem toma as decisoes estrategicas hoje?",
       ],
     },
     {
       id: "problema",
-      title: "Problema central",
+      title: "Problema central (10 min)",
       questions: [
-        "Qual e o principal problema que mais te tira energia hoje?",
+        "Qual e o principal problema que mais te trava hoje?",
         "Onde voce sente que toma decisoes no escuro?",
         "Se isso continuar igual pelos proximos 6 meses, o que acontece?",
         "Por que isso ainda nao foi resolvido?",
@@ -32,34 +43,75 @@ export const DEFAULT_SALES_PLAYBOOK = {
     },
     {
       id: "impacto",
-      title: "Impacto financeiro e estrategico",
+      title: "Impacto financeiro e estrategico (5–7 min)",
       questions: [
-        "Quanto esse problema custa por mes (estimado)?",
-        "Qual decisao voce adia por falta de clareza?",
+        "Quanto voce estima que esse problema te custa por mes?",
+        "Voce sente que trabalha muito e avanca pouco?",
+        "Esse problema afeta mais crescimento, lucro ou sua tranquilidade?",
+        "Qual decisao voce evita tomar hoje por falta de clareza?",
+        "Hoje voce se sente no controle do negocio ou apagando incendio?",
       ],
     },
     {
-      id: "caminho",
-      title: "Caminho e fechamento mental",
+      id: "visao",
+      title: "Visao de futuro (5 min)",
       questions: [
-        "Se eu te devolver clareza de direcao e rotina de CEO em 90-180 dias, o que muda?",
-        "Quem decide o investimento alem de voce?",
+        "Se esse problema estivesse resolvido, como o negocio estaria funcionando?",
+        "Que tipo de decisoes voce gostaria de tomar com mais seguranca?",
+        "O que mudaria na sua rotina?",
+      ],
+    },
+    {
+      id: "convite",
+      title: "Devolutiva e convite",
+      questions: [
+        "Pelo que voce descreveu, o problema central nao e ___, e ___.",
+        "Voce gostaria que eu te explicasse como funcionaria esse acompanhamento?",
       ],
     },
   ],
-  sheets: [
-    "1. Conversa estrategica",
-    "1. Conversa estrategica (copia)",
-    "2. Entendendo o cliente",
-    "3. Abordagem de fechamento",
-    "4. Metas e politica de preco",
+  observe: [
+    "Confusao → falta de controle",
+    "Respostas vagas → decisoes emocionais",
+    "Nao souber o custo do problema → ja e diagnostico",
+  ],
+  avoid: [
+    "Falar demais",
+    "Prometer resultado rapido",
+    "Resolver tudo na primeira conversa",
+    "Disputar preco",
   ],
   qualificationCriteria: [
-    { id: "responsabilidade", label: "Assume responsabilidade" },
-    { id: "numeros", label: "Relacao com numeros" },
-    { id: "disciplina", label: "Disciplina / comportamento" },
-    { id: "investimento", label: "Relacao com investimento" },
-    { id: "decisao", label: "Perfil decisorio" },
+    {
+      id: "responsabilidade",
+      label: "Assume responsabilidade",
+      ideal: "Reconhece o problema, nao terceiriza culpa, aberto a mudar habito. Frase: 'Eu sei que algo precisa mudar, so nao sei exatamente o que.'",
+      problema: "Culpa mercado, governo ou equipe; quer solucao rapida sem mudar. Frase: 'O problema e que ninguem faz nada direito.'",
+    },
+    {
+      id: "numeros",
+      label: "Relacao com numeros",
+      ideal: "Quer entender dados; aceita olhar DRE/margem. Frase: 'Nunca tive isso organizado, mas quero estruturar.'",
+      problema: "Foge de faturamento, custo ou margem; argumenta no achismo.",
+    },
+    {
+      id: "disciplina",
+      label: "Disciplina / comportamento",
+      ideal: "Chega no horario, cumpre combinado, executa o basico.",
+      problema: "Atrasa ou desmarca; nao executa o combinado; some e volta cobrando resultado.",
+    },
+    {
+      id: "investimento",
+      label: "Relacao com investimento",
+      ideal: "Ve consultoria como alavanca; pergunta valor depois do metodo; compara retorno. Frase: 'Se isso me ajudar a decidir melhor, faz sentido.'",
+      problema: "Pergunta preco antes do problema; negocia sem criterio; compara com o mais barato. Frase: 'Fulano faz por metade disso.'",
+    },
+    {
+      id: "decisao",
+      label: "Perfil decisorio",
+      ideal: "Decide com logica; nao esconde socio invisivel; assume quando nao quer avancar.",
+      problema: "Oscila (empolgacao → desistencia); pede validacao constante; nao decide e trava.",
+    },
   ],
   pricePolicy: {
     principle: "Preco e filtro. Quem nao respeita o valor, nao respeita o processo.",

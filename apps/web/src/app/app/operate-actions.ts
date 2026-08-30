@@ -28,6 +28,7 @@ import { classifyDocument } from "@/lib/documents/classify";
 import { extractDocumentText } from "@/lib/documents/ocr";
 import { retrieveKnowledge } from "@/lib/knowledge/retrieve";
 import { getCurrentOrg } from "@/lib/org";
+import { persistFitFromTranscript } from "@/lib/sales/persist-fit";
 import { putObject } from "@/lib/storage";
 
 const MAX_UPLOAD_BYTES = 18 * 1024 * 1024;
@@ -170,6 +171,30 @@ export async function runOperateAction(clientId: string, formData: FormData): Pr
         revalidatePath(`/app/clients/${clientId}/actions`);
         revalidatePath(`/app/clients/${clientId}/dashboard`);
         revalidatePath(`/app/clients/${clientId}/proposals`);
+      });
+      operatePaths(clientId);
+      return {};
+    }
+
+    if (action === "sugerir_fit") {
+      const sessions = await db
+        .select()
+        .from(consultingSessions)
+        .where(and(eq(consultingSessions.clientId, clientId), eq(consultingSessions.organizationId, orgId)))
+        .orderBy(desc(consultingSessions.createdAt));
+      const withText = sessions.filter((row) => row.transcriptRaw?.trim());
+      const session = withText.find((row) => row.kind === "estrategica") ?? withText[0];
+      if (!session?.transcriptRaw?.trim()) {
+        return { error: "Nao ha transcricao para ler o fit. Grave a reuniao estrategica." };
+      }
+      await persistFitFromTranscript({
+        orgId,
+        clientId,
+        sessionId: session.id,
+        sessionKind: session.kind,
+        transcript: session.transcriptRaw,
+        clientName: client.name,
+        force: true,
       });
       operatePaths(clientId);
       return {};

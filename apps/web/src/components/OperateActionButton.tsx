@@ -11,12 +11,14 @@ export function OperateActionButton({
   label,
   variant = "primary",
   locked = false,
+  pendingLabel,
 }: {
   clientId: string;
   action: string;
   label: string;
   variant?: "primary" | "secondary";
   locked?: boolean;
+  pendingLabel?: string;
 }) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
@@ -41,7 +43,7 @@ export function OperateActionButton({
   return (
     <div className="grid gap-2">
       <Button type="button" variant={variant} onClick={onClick} disabled={pending || locked}>
-        {locked ? "Ciclo em andamento..." : pending ? "Processando..." : label}
+        {locked ? "Ciclo em andamento..." : pending ? pendingLabel ?? "Processando..." : label}
       </Button>
       {error ? <p className="max-w-md text-sm text-red-700">{error}</p> : null}
     </div>

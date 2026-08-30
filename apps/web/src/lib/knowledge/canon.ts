@@ -34,6 +34,17 @@ export const PRINCIPLE_CARDS: PrincipleCard[] = [
     never: "Nao apagar historico. Nao inventar valor de meta. Nao concordar por educacao.",
   },
   {
+    id: "daniel-vendas",
+    title: "Metodologia de vendas — reuniao estrategica",
+    author: "Daniel Herculis",
+    area: "principios",
+    weight: 2,
+    thesis:
+      "Conversa com perguntas, nao formulario. Depois da reuniao o sistema sugere cliente ideal ou problema; o consultor decide admitir.",
+    apply: "Roteiro da planilha + filtro dos cinco eixos na transcricao da sessao estrategica.",
+    never: "Nao aceitar quem nao se respeita intelectualmente. Nao inventar fit sem evidencia. Nao disputar preco.",
+  },
+  {
     id: "bsc",
     title: "A Estrategia em Acao (Balanced Scorecard)",
     author: "Kaplan & Norton",
