@@ -14,7 +14,41 @@ export function PageHeader({ title, description, action }: { title: string; desc
 }
 
 export function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return <section className={`rounded-3xl border border-[#012245]/10 bg-white p-6 shadow-sm ${className}`}>{children}</section>;
+  return (
+    <section className={`min-w-0 rounded-3xl border border-[#012245]/10 bg-white p-6 ${className}`}>{children}</section>
+  );
+}
+
+export function CardTitle({
+  kicker,
+  title,
+  hint,
+}: {
+  kicker?: string;
+  title: string;
+  hint?: string;
+}) {
+  return (
+    <div className="mb-4">
+      {kicker ? (
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#2e7271]">{kicker}</p>
+      ) : null}
+      <h2 className="mt-1 text-lg font-semibold text-[#012245]">{title}</h2>
+      {hint ? <p className="mt-1 text-sm text-slate-500">{hint}</p> : null}
+    </div>
+  );
+}
+
+export function EmptyNote({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="rounded-2xl border border-dashed border-[#012245]/15 bg-[#f7f4ee] px-4 py-3 text-sm text-slate-600">
+      {children}
+    </p>
+  );
+}
+
+export function PageGrid({ children }: { children: React.ReactNode }) {
+  return <div className="grid min-w-0 gap-6 lg:grid-cols-12">{children}</div>;
 }
 
 export function Button({
@@ -42,15 +76,30 @@ export function LinkButton({ href, children }: { href: string; children: React.R
 }
 
 export function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
-  return <input {...props} className={`rounded-xl border border-slate-200 px-3 py-2 outline-none focus:border-[#2e7271] ${props.className ?? ""}`} />;
+  return (
+    <input
+      {...props}
+      className={`w-full rounded-xl border border-slate-200 px-3 py-2 outline-none focus:border-[#2e7271] ${props.className ?? ""}`}
+    />
+  );
 }
 
 export function Textarea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
-  return <textarea {...props} className={`rounded-xl border border-slate-200 px-3 py-2 outline-none focus:border-[#2e7271] ${props.className ?? ""}`} />;
+  return (
+    <textarea
+      {...props}
+      className={`w-full rounded-xl border border-slate-200 px-3 py-2 outline-none focus:border-[#2e7271] ${props.className ?? ""}`}
+    />
+  );
 }
 
 export function Select(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
-  return <select {...props} className={`rounded-xl border border-slate-200 px-3 py-2 outline-none focus:border-[#2e7271] ${props.className ?? ""}`} />;
+  return (
+    <select
+      {...props}
+      className={`w-full rounded-xl border border-slate-200 px-3 py-2 outline-none focus:border-[#2e7271] ${props.className ?? ""}`}
+    />
+  );
 }
 
 export function Field({ label, children }: { label: string; children: React.ReactNode }) {

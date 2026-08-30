@@ -48,15 +48,12 @@ ANTHROPIC_MODEL=claude-haiku-4-5
 OPENROUTER_API_KEY=<sua-chave-openrouter>
 OPENROUTER_MODEL=anthropic/claude-haiku-4.5
 OPENROUTER_SEARCH_MODEL=perplexity/sonar
-TAVILY_API_KEY=<opcional-busca-web-quando-apify-sem-credito>
-APIFY_TOKEN=<seu-token-apify>
-APIFY_GOOGLE_SEARCH_ACTOR=apify/google-search-scraper
-APIFY_WEBSITE_CRAWLER_ACTOR=apify/website-content-crawler
+TAVILY_API_KEY=<cole-no-easypanel-nao-no-git>
 MISTRAL_API_KEY=<ocr-pdf-dre-contratos>
 MISTRAL_OCR_MODEL=mistral-ocr-latest
 ```
 
-> **IA / pesquisa:** sem `ANTHROPIC_API_KEY` o diagnostico cai na heuristica; sem `APIFY_TOKEN` a pesquisa R cai no rascunho heuristico. Colar as chaves no EasyPanel (nao no git).
+> **IA / pesquisa:** diagnostico via OpenRouter (Haiku). Pesquisa R via Tavily + OpenRouter. Sem `TAVILY_API_KEY` o ciclo tenta `perplexity/sonar`. Nao inventamos mercado. Chaves so no EasyPanel.
 
 > **MinIO / AWS SDK:** nunca use o hostname interno do Docker com underscore
 > (`http://orbe_orbe-minio:9000`) — o SDK S3 responde `Invalid hostname`.

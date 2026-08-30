@@ -12,6 +12,7 @@ import { CockpitDocumentForm, ConsultantDirectionForm } from "@/components/Cockp
 import { CycleRunBanner } from "@/components/CycleRunBanner";
 import { OperateActionButton } from "@/components/OperateActionButton";
 import { SessionCreateForm } from "@/components/SessionCreateForm";
+import { ClientWorkspaceNav } from "@/components/ClientWorkspaceNav";
 import { Card, LinkButton, PageHeader } from "@/components/ui";
 import {
   buildProcessBrief,
@@ -124,6 +125,7 @@ export default async function OperatePage({ params }: { params: Promise<{ id: st
         description="Sua funcao: gravar a sessao, dar direcionamento, subir documento, validar o servico e acompanhar o desenvolvimento. O sistema opera o metodo."
         action={<LinkButton href={`/app/clients/${id}`}>Sala de gestao</LinkButton>}
       />
+      <ClientWorkspaceNav clientId={id} current="operate" />
 
       <Card className="mb-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
@@ -167,8 +169,8 @@ export default async function OperatePage({ params }: { params: Promise<{ id: st
           </p>
         ) : (
           <p className="mt-3 text-sm text-slate-500">
-            Pesquisa de mercado roda neste botao (Apify, Tavily ou Perplexity/Sonar). Sem credito, o ciclo aponta o
-            buraco e nao inventa mercado.
+            Pesquisa de mercado (Tavily + OpenRouter) roda neste botao. Sem chave, o ciclo aponta o buraco e nao
+            inventa mercado.
           </p>
         )}
         <ul className="mt-6 grid gap-3">

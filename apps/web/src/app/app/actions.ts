@@ -468,8 +468,6 @@ export async function runMarketResearch(clientId: string, formData: FormData) {
     website: text(formData, "website"),
     knowledge,
   });
-  if (research.source === "heuristic") return;
-
   await db.insert(marketInsights).values({
     organizationId: orgId,
     clientId,
@@ -477,11 +475,7 @@ export async function runMarketResearch(clientId: string, formData: FormData) {
     region: research.region,
     sector: research.sector,
     summary:
-      research.source === "tavily+llm"
-        ? `[Tavily+LLM] ${research.summary}`
-        : research.source === "sonar+llm"
-          ? `[Sonar+LLM] ${research.summary}`
-          : `[Apify+LLM] ${research.summary}`,
+      research.source === "tavily+llm" ? `[Tavily+LLM] ${research.summary}` : `[Sonar+LLM] ${research.summary}`,
     payload: research.payload,
   });
 

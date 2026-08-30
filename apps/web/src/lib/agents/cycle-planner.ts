@@ -66,7 +66,7 @@ Diagnostico consolidado:
 ${opts.diagnosticJson.slice(0, 14000)}
 
 Pesquisa de mercado (se houver):
-${(opts.marketSummary ?? "(ainda sem Apify)").slice(0, 3000)}
+${(opts.marketSummary ?? "(ainda sem pesquisa web)").slice(0, 3000)}
 
 Principios:
 ${(opts.knowledge ?? "").slice(0, 2000)}

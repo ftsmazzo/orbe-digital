@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 import { and, eq } from "drizzle-orm";
 import { PERSPECTIVE_LABELS, PERSPECTIVES } from "@orbe/shared";
-import { Card, PageHeader } from "@/components/ui";
+import { ClientWorkspaceNav } from "@/components/ClientWorkspaceNav";
+import { Card, CardTitle, EmptyNote, PageHeader } from "@/components/ui";
 import { actionItems, clients, db, indicators } from "@/lib/db";
 import { formatDate, pct } from "@/lib/format";
 import { getCurrentOrg } from "@/lib/org";
@@ -52,14 +53,15 @@ export default async function ClientDashboardPage({ params }: { params: Promise<
   return (
     <>
       <PageHeader
-        title={`Dashboard - ${client.name}`}
-        description="Mapa BSC: planejado x realizado. 0% so aparece quando ha meta numerica e realizado zero — sem DRE o indicador fica sem porcentagem."
+        title={`Dashboard · ${client.tradeName ?? client.name}`}
+        description="Mapa BSC: planejado x realizado. Sem DRE nao ha porcentagem — o aviso fica visivel."
         action={
           <a className="rounded-xl bg-[#012245] px-4 py-2 text-sm font-semibold text-white" href={`/print/dashboard/${id}`}>
             Imprimir PDF
           </a>
         }
       />
+      <ClientWorkspaceNav clientId={id} current="dashboard" />
       <div className="grid gap-6 md:grid-cols-3">
         <Card><p className="text-sm text-slate-500">Indicadores</p><strong className="mt-2 block text-3xl text-[#012245]">{indicatorRows.length}</strong></Card>
         <Card><p className="text-sm text-slate-500">Acoes concluidas</p><strong className="mt-2 block text-3xl text-[#2e7271]">{completed}</strong></Card>
@@ -67,7 +69,7 @@ export default async function ClientDashboardPage({ params }: { params: Promise<
       </div>
 
       <Card className="mt-6">
-        <h2 className="text-lg font-semibold text-[#012245]">Mapa BSC</h2>
+        <CardTitle title="Mapa BSC" hint="Barra vazia significa falta de meta numerica, nao fracasso de 0%." />
         <div className="mt-4 grid gap-4 md:grid-cols-2">
           {bsc.map((block) => (
             <div key={block.perspective} className="rounded-2xl border border-slate-100 p-4">

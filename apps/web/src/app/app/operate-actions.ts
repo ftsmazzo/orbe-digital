@@ -278,7 +278,7 @@ async function orchestrateFullCycle(
     .orderBy(desc(marketInsights.createdAt))
     .limit(1);
   const insightIsReal = Boolean(
-    insight?.summary && /\[(Apify|Tavily|Sonar)/i.test(insight.summary),
+    insight?.summary && /\[(Tavily|Sonar)/i.test(insight.summary),
   );
   if (!insightIsReal) {
     await setCycleRun(clientId, orgId, { step: "Pesquisando mercado" });
@@ -416,12 +416,7 @@ async function researchFromCockpit(
     region: city ?? undefined,
     knowledge,
   });
-  if (research.source === "heuristic") {
-    throw new Error(
-      "Sem credito Apify e sem busca web (Tavily ou Perplexity/Sonar na OpenRouter). Pesquisa nao foi inventada.",
-    );
-  }
-  const tag = research.source === "apify+claude" ? "Apify+LLM" : research.source === "tavily+llm" ? "Tavily+LLM" : "Sonar+LLM";
+  const tag = research.source === "tavily+llm" ? "Tavily+LLM" : "Sonar+LLM";
   await db.insert(marketInsights).values({
     organizationId: orgId,
     clientId,

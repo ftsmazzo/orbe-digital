@@ -175,7 +175,7 @@ export function buildProcessBrief(input: {
     title: input.hasMarketResearch ? "Pesquisa de mercado no nucleo" : "Pesquisa R ainda sem fonte web",
     detail: input.hasMarketResearch
       ? "Insight regional/global ja gravado."
-      : "O ciclo tenta Apify, Tavily ou Perplexity/Sonar. Sem credito, o plano segue e este ponto fica apontado — nao inventamos mercado.",
+      : "O ciclo tenta Tavily e, se faltar, Perplexity/Sonar na OpenRouter. Sem chave, o plano segue apontado — nao inventamos mercado.",
   });
 
   notes.push({

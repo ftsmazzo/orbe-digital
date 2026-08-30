@@ -19,7 +19,7 @@ export function MarketResearchForm({ clientId, defaultRegion = "", defaultSector
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
-    setStatus("Iniciando Apify + Claude…");
+    setStatus("Buscando com Tavily / OpenRouter…");
     setPending(true);
 
     const form = event.currentTarget;
@@ -35,7 +35,7 @@ export function MarketResearchForm({ clientId, defaultRegion = "", defaultSector
           region: formData.get("region"),
           sector: formData.get("sector"),
           website: formData.get("website"),
-          applyIndicators: formData.get("applyIndicators") === "on",
+          applyIndicators: false,
         }),
       });
 
@@ -46,11 +46,7 @@ export function MarketResearchForm({ clientId, defaultRegion = "", defaultSector
         return;
       }
 
-      setStatus(
-        payload.source === "apify+claude"
-          ? "Pesquisa Apify+Claude concluida."
-          : "Concluida com fallback heuristico.",
-      );
+      setStatus("Pesquisa gravada com fontes.");
       router.refresh();
     } catch {
       setError("Falha de rede. Tente de novo.");
@@ -61,33 +57,23 @@ export function MarketResearchForm({ clientId, defaultRegion = "", defaultSector
   }
 
   return (
-    <form onSubmit={onSubmit} className="mt-4 grid gap-3">
+    <form onSubmit={onSubmit} className="grid gap-3">
       <Field label="Alcance">
         <Select name="scope" defaultValue="regional" disabled={pending}>
-          <option value="regional">Regional (cidade/UF/praca)</option>
-          <option value="global">Global / amplo</option>
+          <option value="regional">Regional</option>
+          <option value="global">Amplo</option>
         </Select>
       </Field>
       <Field label="Regiao / mercado">
-        <Input name="region" defaultValue={defaultRegion} placeholder="Ex.: Sao Paulo - SP ou LatAm" disabled={pending} />
+        <Input name="region" defaultValue={defaultRegion} placeholder="Cidade ou UF" disabled={pending} />
       </Field>
       <Field label="Setor">
-        <Input name="sector" defaultValue={defaultSector} placeholder="Ex.: Moda / Varejo" disabled={pending} />
+        <Input name="sector" defaultValue={defaultSector} placeholder="Ex.: TI / servicos" disabled={pending} />
       </Field>
-      <Field label="Site do cliente (opcional)">
-        <Input name="website" placeholder="https://exemplo.com.br" disabled={pending} />
-      </Field>
-      <label className="flex items-center gap-2 text-sm text-slate-700">
-        <input name="applyIndicators" type="checkbox" defaultChecked disabled={pending} />
-        Criar indicadores sugeridos automaticamente
-      </label>
-      <p className="text-xs text-amber-800">
-        Apify + Claude: espere 1–2 minutos. O botao trava e mostra progresso.
-      </p>
       {status ? <p className="text-sm text-[#2e7271]">{status}</p> : null}
       {error ? <p className="text-sm text-red-700">{error}</p> : null}
-      <Button type="submit" disabled={pending} className={pending ? "opacity-70" : undefined}>
-        {pending ? "Pesquisando… nao feche a pagina" : "Rodar pesquisa"}
+      <Button type="submit" disabled={pending}>
+        {pending ? "Pesquisando…" : "Rodar pesquisa"}
       </Button>
     </form>
   );

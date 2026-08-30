@@ -111,16 +111,20 @@ export async function researchMarketFromWeb(
   let source: WebResearchSource = "sonar+llm";
 
   if (tavilyKey()) {
-    hits = await searchTavily(query);
-    source = "tavily+llm";
-  } else if (hasOpenRouterKey()) {
+    try {
+      hits = await searchTavily(query);
+      source = "tavily+llm";
+    } catch (error) {
+      console.error("[market-research] Tavily falhou:", error);
+    }
+  }
+  if (!hits.length && hasOpenRouterKey()) {
     const sonar = await searchSonar(query);
     hits = sonar.hits;
     answer = sonar.answer;
     source = "sonar+llm";
-  } else {
-    return null;
   }
+  if (!hits.length && !answer) return null;
 
   if (!hits.length && !answer) return null;
 

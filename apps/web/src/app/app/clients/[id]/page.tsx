@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { and, desc, eq } from "drizzle-orm";
 import { CRM_STAGE_LABELS, CRM_STAGES, type SalesQualification } from "@orbe/shared";
 import { SalesQualificationForm } from "@/components/SalesQualificationForm";
+import { ClientWorkspaceNav } from "@/components/ClientWorkspaceNav";
 import { Button, Card, Field, Input, LinkButton, PageHeader, Select, Textarea } from "@/components/ui";
 import { actionItems, clients, consultingSessions, db, diagnostics, organizations, proposals, reports, salesScoreEvents } from "@/lib/db";
 import { formatDateTime } from "@/lib/format";
@@ -40,7 +41,8 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
         description={`${CRM_STAGE_LABELS[client.stage]} · ${client.sector ?? "Setor nao informado"}`}
         action={<LinkButton href={`/app/clients/${id}/operate`}>Abrir operacao</LinkButton>}
       />
-      <div className="grid gap-6 xl:grid-cols-[420px_1fr]">
+      <ClientWorkspaceNav clientId={id} current="" />
+      <div className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,420px)_minmax(0,1fr)]">
         <div className="grid gap-6">
           <Card>
             <h2 className="text-lg font-semibold text-[#012245]">Cadastro</h2>

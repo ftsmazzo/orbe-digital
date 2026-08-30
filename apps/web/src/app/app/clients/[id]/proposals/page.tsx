@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { and, desc, eq } from "drizzle-orm";
+import { ClientWorkspaceNav } from "@/components/ClientWorkspaceNav";
 import { Button, Card, Field, Input, PageHeader, Select, Textarea } from "@/components/ui";
 import { clients, db, proposals } from "@/lib/db";
 import { formatDateTime } from "@/lib/format";
@@ -20,7 +21,8 @@ export default async function ProposalsPage({ params }: { params: Promise<{ id: 
         description="Gere proposta comercial ORBE a partir do cliente e diagnostico mais recente."
         action={<form action={generateProposal.bind(null, id)}><Button>Gerar proposta</Button></form>}
       />
-      <div className="grid gap-6">
+      <ClientWorkspaceNav clientId={id} current="proposals" />
+      <div className="grid min-w-0 gap-6">
         {rows.map((proposal) => (
           <Card key={proposal.id}>
             <div className="flex flex-wrap justify-between gap-3">

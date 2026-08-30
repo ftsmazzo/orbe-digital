@@ -48,9 +48,7 @@ export async function POST(
         region: research.region,
         sector: research.sector,
         summary:
-          research.source === "heuristic"
-            ? `[Heuristica] ${research.summary}`
-            : `[Apify+Claude] ${research.summary}`,
+          research.source === "tavily+llm" ? `[Tavily+LLM] ${research.summary}` : `[Sonar+LLM] ${research.summary}`,
         payload: research.payload,
       })
       .returning();
