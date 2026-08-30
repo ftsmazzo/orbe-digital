@@ -69,6 +69,28 @@ function stringList(value: unknown): string[] {
   return asTextList(value);
 }
 
+function linesFromField(value: unknown): string[] {
+  if (Array.isArray(value)) return asTextList(value).slice(0, 5);
+  if (typeof value === "string") {
+    return value
+      .split(/[\n|;,]/)
+      .map((item) => item.trim())
+      .filter(Boolean)
+      .slice(0, 5);
+  }
+  return asTextList(value).slice(0, 5);
+}
+
+function matrixFromSwotSection(swot?: Record<string, { value?: unknown }>) {
+  if (!swot) return undefined;
+  const forcas = linesFromField(swot.forcas?.value);
+  const fraquezas = linesFromField(swot.fraquezas?.value);
+  const oportunidades = linesFromField(swot.oportunidades?.value);
+  const ameacas = linesFromField(swot.ameacas?.value);
+  if (!forcas.length && !fraquezas.length && !oportunidades.length && !ameacas.length) return undefined;
+  return { forcas, fraquezas, oportunidades, ameacas, fo: [], fa: [], wo: [], wa: [] };
+}
+
 function clampMaturity(value: unknown, fallback: number) {
   const n = Number(value);
   if (!Number.isFinite(n)) return fallback;
@@ -176,6 +198,7 @@ Retorne JSON no formato:
   }
 
   const score360 = normalizeScore360(payloadRaw.score360);
+  const swot = normalizeSection(payloadRaw.swot);
 
   const payload: DiagnosticPayload = {
     empresa,
@@ -183,10 +206,11 @@ Retorne JSON no formato:
     financeiro: normalizeSection(payloadRaw.financeiro),
     operacional: normalizeSection(payloadRaw.operacional),
     comercial: normalizeSection(payloadRaw.comercial),
-    swot: normalizeSection(payloadRaw.swot),
+    swot,
     gut: normalizeGut((payloadRaw as { gut?: unknown }).gut),
     ishikawa: normalizeIshikawa((payloadRaw as { ishikawa?: unknown }).ishikawa),
     mix4p: emptyMixIfUngrounded(normalizeSection((payloadRaw as { mix4p?: unknown }).mix4p)),
+    swotMatrix: matrixFromSwotSection(swot),
     score360,
     maturidade: maturity,
     prioridades: priorities,

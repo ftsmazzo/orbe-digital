@@ -82,7 +82,43 @@ function fieldValue(section: Record<string, DiagnosticFieldValue> | undefined, k
 
 function displayValue(value: DiagnosticFieldValue["value"]) {
   if (value === null || value === undefined) return "";
+  if (Array.isArray(value)) return value.map(String).filter(Boolean).join(" · ");
   return String(value);
+}
+
+function linesFromField(value: DiagnosticFieldValue["value"] | undefined): string[] {
+  if (Array.isArray(value)) return value.map(String).map((item) => item.trim()).filter(Boolean).slice(0, 5);
+  if (typeof value === "string") {
+    return value
+      .split(/[\n|;,·]/)
+      .map((item) => item.trim())
+      .filter(Boolean)
+      .slice(0, 5);
+  }
+  return [];
+}
+
+function matrixFromSwot(payload: DiagnosticPayload): SwotMatrix | undefined {
+  const existing = payload.swotMatrix;
+  if (existing?.forcas?.length || existing?.fraquezas?.length || existing?.oportunidades?.length || existing?.ameacas?.length) {
+    return existing;
+  }
+  const swot = payload.swot;
+  const forcas = linesFromField(swot?.forcas?.value);
+  const fraquezas = linesFromField(swot?.fraquezas?.value);
+  const oportunidades = linesFromField(swot?.oportunidades?.value);
+  const ameacas = linesFromField(swot?.ameacas?.value);
+  if (!forcas.length && !fraquezas.length && !oportunidades.length && !ameacas.length) return existing;
+  return {
+    forcas,
+    fraquezas,
+    oportunidades,
+    ameacas,
+    fo: existing?.fo ?? [],
+    fa: existing?.fa ?? [],
+    wo: existing?.wo ?? [],
+    wa: existing?.wa ?? [],
+  };
 }
 
 export function DiagnosticEditor(props: Props) {
@@ -162,7 +198,7 @@ export function DiagnosticEditor(props: Props) {
         })}
 
         <SwotMatrixEditor
-          value={payload.swotMatrix}
+          value={matrixFromSwot(payload)}
           onChange={(swotMatrix: SwotMatrix) => setPayload((prev) => ({ ...prev, swotMatrix }))}
         />
 
