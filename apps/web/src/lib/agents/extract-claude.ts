@@ -1,6 +1,7 @@
 import type { Confidence, DiagnosticFieldValue, DiagnosticPayload, Score360, Score360Dimension, Score360Profile } from "@orbe/shared";
 import { SCORE360_DIMENSIONS, SCORE360_PROFILES, computeScore360Total } from "@orbe/shared";
 import { completeJson, hasAnthropicKey } from "@/lib/ai/claude";
+import { formatMethodForPrompt } from "@/lib/agents/tools/method-canon";
 
 export type ExtractedDiagnostic = {
   payload: DiagnosticPayload;
@@ -22,15 +23,19 @@ type ClaudeExtractResponse = {
 };
 
 const SYSTEM = `Voce e o Analista ORBE (consultoria financeira/estrategica low ticket).
-Extraia um diagnostico estruturado APENAS do que a transcricao sustenta.
+Extraia um diagnostico estruturado APENAS do que a transcricao e os documentos sustentam.
+
+${formatMethodForPrompt()}
 
 Regras obrigatorias:
 - NUNCA invente numeros, faturamento, margem ou fatos nao ditos.
 - Se algo nao foi citado, use value: null e acrescente pergunta em perguntas_em_aberto / openQuestions.
 - Cada campo de valor deve ser { "value": ..., "confianca": "alta"|"media"|"baixa", "evidencia": "trecho curto da transcricao" }.
 - Separar fato (campos) de interpretacao (gaps/prioridades).
+- CPV nao e custo produzido se houver estoque. Rateio nao e lucro de produto.
 - maturidade de 1 a 5 com justificativa implicita nos gaps.
 - Sugira score360 com perfil "consultoria" e notas 1-5 nas 7 dimensoes SO com base na transcricao (use 0 se nao houver evidencia).
+- Se a opiniao do consultor na transcricao nao for estrategica, registre em riscos (nao apague o fato).
 - Responda SOMENTE JSON valido, sem markdown.`;
 
 function asField(raw: unknown): DiagnosticFieldValue | undefined {

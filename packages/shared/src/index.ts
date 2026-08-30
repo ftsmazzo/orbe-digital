@@ -37,6 +37,14 @@ export const PERSPECTIVE_LABELS: Record<Perspective, string> = {
   aprendizagem: "Aprendizagem",
 };
 
+/** Lingua do Daniel nos audios. */
+export const PERSPECTIVE_LABELS_DANIEL: Record<Perspective, string> = {
+  financeira: "Financeira",
+  clientes: "Comercial",
+  processos: "Processos internos",
+  aprendizagem: "Recursos",
+};
+
 export const SESSION_STATUSES = [
   "gravando",
   "enviado",

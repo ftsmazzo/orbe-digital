@@ -16,6 +16,8 @@ import {
   proposals,
 } from "@/lib/db";
 import { planOrbeCycle, type CyclePlan } from "@/lib/agents/cycle-planner";
+import { readDreBrief } from "@/lib/agents/tools/leitor-dre";
+import { GLOBAL_NOTE_PREFIX } from "@/lib/agents/tools/mapa-bsc";
 import { extractDiagnosticFromTranscript } from "@/lib/agents/extract";
 import { researchMarketEnriched } from "@/lib/agents/market-research-apify";
 import { isThinHeuristicPayload, pickBestDiagnostic } from "@/lib/agents/process-status";
@@ -180,6 +182,11 @@ async function orchestrateFullCycle(
     .orderBy(desc(marketInsights.createdAt))
     .limit(1);
 
+  const docs = await documentContext(orgId, clientId);
+  const dre = readDreBrief({
+    payload: (diagnostic.payload ?? {}) as DiagnosticPayload,
+    documentText: docs,
+  });
   const knowledge = await retrieveKnowledge({
     orgId,
     query: `${client.name} planejamento BSC metas acoes ${client.sector ?? ""}`,
@@ -196,6 +203,7 @@ async function orchestrateFullCycle(
     }),
     marketSummary: insightAfter?.summary,
     knowledge,
+    dre,
   });
 
   await persistCyclePlan(orgId, clientId, cycle);
@@ -344,7 +352,28 @@ async function persistCyclePlan(orgId: string, clientId: string, cycle: CyclePla
     }
   }
 
-  const unusedGoals = existingGoals.filter((goal) => !existingIndicators.some((row) => row.goalId === goal.id));
+  const unusedGoals = existingGoals.filter(
+    (goal) =>
+      !goal.notes?.startsWith(GLOBAL_NOTE_PREFIX) && !existingIndicators.some((row) => row.goalId === goal.id),
+  );
+
+  const existingGlobals = existingGoals.filter((goal) => goal.notes?.startsWith(GLOBAL_NOTE_PREFIX));
+  for (const global of cycle.globals ?? []) {
+    if (existingGlobals.length >= 6) break;
+    if (existingGlobals.some((row) => row.title.toLowerCase() === global.title.toLowerCase())) continue;
+    const challenge = (cycle.challenges ?? []).slice(0, 2).join(" ");
+    const [created] = await db
+      .insert(goals)
+      .values({
+        organizationId: orgId,
+        clientId,
+        title: global.title,
+        notes: [`${GLOBAL_NOTE_PREFIX} ${global.notes}`, challenge].filter(Boolean).join("\n") || GLOBAL_NOTE_PREFIX,
+        year,
+      })
+      .returning();
+    existingGlobals.push(created);
+  }
 
   for (const planned of cycle.goals) {
     const existingIndicator = indicatorByPerspective.get(planned.perspective);
@@ -476,6 +505,7 @@ async function planFromCockpit(orgId: string, clientId: string) {
     .orderBy(desc(marketInsights.createdAt))
     .limit(1);
 
+  const docs = await documentContext(orgId, clientId);
   const knowledge = await retrieveKnowledge({
     orgId,
     query: `${client.name} planejamento BSC metas acoes ${client.sector ?? ""}`,
@@ -492,6 +522,10 @@ async function planFromCockpit(orgId: string, clientId: string) {
     }),
     marketSummary: insight?.summary,
     knowledge,
+    dre: readDreBrief({
+      payload: (diagnostic.payload ?? {}) as DiagnosticPayload,
+      documentText: docs,
+    }),
   });
   await persistCyclePlan(orgId, clientId, cycle);
 }

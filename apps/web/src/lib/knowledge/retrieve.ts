@@ -1,5 +1,6 @@
 import { eq } from "drizzle-orm";
 import { db, knowledgeChunks, knowledgeSources } from "@/lib/db";
+import { formatMethodForPrompt } from "@/lib/agents/tools/method-canon";
 import { cardsForQuery, formatCardsForPrompt, type PrincipleCard } from "@/lib/knowledge/canon";
 import type { Perspective } from "@orbe/shared";
 
@@ -16,7 +17,7 @@ export async function retrieveKnowledge(opts: {
     .from(knowledgeSources)
     .where(eq(knowledgeSources.organizationId, opts.orgId));
   if (!sources.length) {
-    return `BASE PRINCIPIOS ORBE (fichas):\n${cardBlock}`;
+    return `${formatMethodForPrompt()}\n\nBASE PRINCIPIOS ORBE (fichas):\n${cardBlock}`;
   }
 
   const sourceIds = sources.map((s) => s.id);
@@ -38,7 +39,7 @@ export async function retrieveKnowledge(opts: {
     .join("\n\n");
 
   void sourceIds;
-  return `BASE PRINCIPIOS ORBE (fichas):\n${cardBlock}\n\nTRECHOS ENVIADOS PELO CONSULTOR:\n${uploaded || "(nenhum PDF ainda)"}`;
+  return `${formatMethodForPrompt()}\n\nBASE PRINCIPIOS ORBE (fichas):\n${cardBlock}\n\nTRECHOS ENVIADOS PELO CONSULTOR:\n${uploaded || "(nenhum PDF ainda)"}`;
 }
 
 export type { PrincipleCard };

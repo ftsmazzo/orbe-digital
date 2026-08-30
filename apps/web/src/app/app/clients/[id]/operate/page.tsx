@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { and, desc, eq } from "drizzle-orm";
 import {
   DOCUMENT_KIND_LABELS,
-  PERSPECTIVE_LABELS,
+  PERSPECTIVE_LABELS_DANIEL,
   type DiagnosticPayload,
   type DocumentKind,
   type Perspective,
@@ -87,6 +87,8 @@ export default async function OperatePage({ params }: { params: Promise<{ id: st
   const payload = (bestDiagnostic?.payload ?? {}) as DiagnosticPayload;
   const thin = isThinHeuristicPayload(payload);
   const missingFields = missingFichaFields(payload);
+  const globalGoals = goalRows.filter((goal) => goal.notes?.startsWith("[global]"));
+  const perspectiveGoals = goalRows.filter((goal) => !goal.notes?.startsWith("[global]"));
   const brief = buildProcessBrief({
     sessionsReady: sessionRows.filter((row) => row.status === "pronto").length,
     sessionsProcessing: sessionRows.filter((row) => row.status === "processando").length,
@@ -97,7 +99,7 @@ export default async function OperatePage({ params }: { params: Promise<{ id: st
     diagnosticThin: thin,
     missingFields,
     hasMarketResearch: marketRows.length > 0,
-    goals: goalRows.length,
+    goals: perspectiveGoals.length,
     actions: actionRows.length,
     proposals: proposalRows.length,
   });
@@ -105,7 +107,7 @@ export default async function OperatePage({ params }: { params: Promise<{ id: st
   const canRunCycle = brief.recommendedAction === "ciclo" || brief.recommendedAction === "acompanhar";
   const canValidate = Boolean(bestDiagnostic && !thin && !bestDiagnostic.validated);
 
-  const cycleBlocks = goalRows.map((goal) => {
+  const cycleBlocks = perspectiveGoals.map((goal) => {
     const kpis = indicatorRows.filter((row) => row.goalId === goal.id);
     const actions = actionRows.filter((row) => row.goalId === goal.id);
     const perspective = (kpis[0]?.perspective ?? actions[0]?.perspective ?? "financeira") as Perspective;
@@ -199,6 +201,9 @@ export default async function OperatePage({ params }: { params: Promise<{ id: st
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#2e7271]">4 · Acompanhar o desenvolvimento</p>
             <h2 className="mt-1 text-lg font-semibold text-[#012245]">Ciclo preenchido nesta empresa</h2>
+            <p className="mt-1 text-sm text-slate-500">
+              Metas globais e as quatro perspectivas (financeira, comercial, processos, recursos). Acao em 5W2H.
+            </p>
           </div>
           {bestDiagnostic ? (
             <Link href={`/app/diagnostics/${bestDiagnostic.id}`} className="text-sm font-semibold text-[#2e7271]">
@@ -207,16 +212,32 @@ export default async function OperatePage({ params }: { params: Promise<{ id: st
           ) : null}
         </div>
 
+        {globalGoals.length > 0 ? (
+          <div className="mt-5 rounded-2xl border border-[#2e7271]/20 bg-[#2e7271]/5 px-4 py-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-[#2e7271]">Metas globais</p>
+            <ol className="mt-2 list-decimal space-y-2 pl-5 text-sm text-[#012245]">
+              {globalGoals.map((goal) => (
+                <li key={goal.id}>
+                  <strong>{goal.title}</strong>
+                  {goal.notes ? (
+                    <span className="mt-0.5 block text-slate-500">{goal.notes.replace("[global]", "").trim()}</span>
+                  ) : null}
+                </li>
+              ))}
+            </ol>
+          </div>
+        ) : null}
+
         {cycleBlocks.length === 0 ? (
           <p className="mt-4 text-sm text-slate-500">
-            Ainda nao ha metas. Grave ou processe o ciclo — o sistema preenche as 4 perspectivas BSC.
+            Ainda nao ha metas por perspectiva. Grave ou processe o ciclo — o sistema preenche as 4 perspectivas e ate 6 globais.
           </p>
         ) : (
           <div className="mt-5 grid gap-4">
             {cycleBlocks.map(({ goal, kpis, actions, perspective }) => (
               <section key={goal.id} className="rounded-2xl border border-slate-100 px-4 py-4">
                 <p className="text-xs font-semibold uppercase tracking-wide text-[#2e7271]">
-                  {PERSPECTIVE_LABELS[perspective] ?? perspective}
+                  {PERSPECTIVE_LABELS_DANIEL[perspective] ?? perspective}
                 </p>
                 <h3 className="mt-1 font-semibold text-[#012245]">{goal.title}</h3>
                 {goal.notes ? <p className="mt-1 text-sm text-slate-500">{goal.notes}</p> : null}

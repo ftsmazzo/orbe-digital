@@ -21,7 +21,17 @@ export const PRINCIPLE_CARDS: PrincipleCard[] = [
     weight: 3,
     thesis: "Desejo definido, fe aplicada e persistencia organizam a acao. O consultor conduz clareza de objetivo antes de ferramenta.",
     apply: "Abertura da reuniao estrategica, metas do cliente, disciplina de execucao.",
-    never: "Nao inventar numeros nem prometer resultado financeiro.",
+    never: "Nao inventar numeros nem prometer resultado financeiro. Clareza de objetivo antes de ferramenta.",
+  },
+  {
+    id: "daniel-playbook",
+    title: "Playbook falado — CEO terceirizado",
+    author: "Daniel Herculis",
+    area: "principios",
+    weight: 2,
+    thesis: "Reuniao de entrada, alinhamento com o orquestrador, diagnostico editavel, 6 metas globais, 4 perspectivas, 5W2H e acompanhamento. O sistema pode contrariar o consultor se nao for estrategico.",
+    apply: "Operar o ciclo; preservar auditoria do que saiu da tela; lingua: comercial e recursos.",
+    never: "Nao apagar historico. Nao inventar valor de meta. Nao concordar por educacao.",
   },
   {
     id: "bsc",
@@ -31,7 +41,7 @@ export const PRINCIPLE_CARDS: PrincipleCard[] = [
     weight: 2,
     thesis: "Estrategia vira metas e indicadores nas 4 perspectivas: financeira, clientes, processos, aprendizagem.",
     apply: "Diagnostico O, planejamento R, dashboard E.",
-    never: "Nao criar KPI sem meta e dono.",
+    never: "Nao criar KPI sem meta e dono. Nao lista generica de indicadores. Nao inventar numero.",
   },
   {
     id: "mapas",
@@ -81,7 +91,7 @@ export const PRINCIPLE_CARDS: PrincipleCard[] = [
     weight: 1,
     thesis: "Custo direto vs indireto, CMV e margem definem preco e ponto de equilibrio.",
     apply: "Folha light, capital de giro, DRE.",
-    never: "Nao usar custo padrao inventado.",
+    never: "Nao usar custo padrao inventado. CPV nao e custo produzido se houver estoque. Nao matar produto pelo lucro apos rateio.",
   },
   {
     id: "controladoria",

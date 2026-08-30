@@ -23,6 +23,11 @@ apps/web/.env.local
 Contexto/*.xlsx
 Contexto/*.xlsm
 Contexto/*.pdf
+Contexto/**/*.pdf
+Contexto/**/*.Pdf
+Contexto/Livros Conhecimento/
+Contexto/conhecimento/_inbox/
+Contexto/conhecimento/pdf/
 Contexto/*.ppsx
 Contexto/*.cdr*
 Contexto/*.zip

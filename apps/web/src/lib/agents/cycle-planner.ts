@@ -1,34 +1,11 @@
 import { PERSPECTIVES, type Perspective } from "@orbe/shared";
 import { completeJson } from "@/lib/ai/claude";
+import type { CycleGoal, CyclePlan } from "@/lib/agents/cycle-types";
+import { enforceMapaBsc } from "@/lib/agents/tools/mapa-bsc";
+import { formatMethodForPrompt } from "@/lib/agents/tools/method-canon";
+import { formatDreBrief, type DreBrief } from "@/lib/agents/tools/leitor-dre";
 
-export type CycleKpi = {
-  name: string;
-  unit: string;
-  direction: "aumentar" | "diminuir";
-  planned: Record<string, number | null>;
-  missing?: string;
-};
-
-export type CycleAction = {
-  title: string;
-  how: string;
-  ownerName: string;
-  sector: string;
-};
-
-export type CycleGoal = {
-  perspective: Perspective;
-  title: string;
-  notes: string;
-  kpis: CycleKpi[];
-  actions: CycleAction[];
-};
-
-export type CyclePlan = {
-  goals: CycleGoal[];
-  missing: string[];
-  openQuestions: string[];
-};
+export type { CycleAction, CycleGlobal, CycleGoal, CycleKpi, CyclePlan } from "@/lib/agents/cycle-types";
 
 function emptyMonths(): Record<string, number | null> {
   return Object.fromEntries(Array.from({ length: 12 }, (_, i) => [String(i + 1).padStart(2, "0"), null]));
@@ -44,8 +21,17 @@ export async function planOrbeCycle(opts: {
   diagnosticJson: string;
   marketSummary?: string;
   knowledge?: string;
+  dre?: DreBrief;
 }): Promise<CyclePlan> {
+  const dre = opts.dre ?? {
+    hasDreDocument: false,
+    hasSessionNumbers: false,
+    allowPlannedNumbers: false,
+    notes: [],
+    gates: [],
+  };
   const raw = await completeJson<{
+    globals?: { title?: string; notes?: string }[];
     goals?: {
       perspective?: string;
       title?: string;
@@ -55,12 +41,17 @@ export async function planOrbeCycle(opts: {
     }[];
     missing?: string[];
     openQuestions?: string[];
+    challenges?: string[];
   }>({
-    system: `Voce e o Planejador ORBE. Metodo: O diagnosticado, R metas nas 4 perspectivas BSC (financeira, clientes, processos, aprendizagem), B planos de acao com dono e como.
-NUNCA invente numero de DRE, margem ou faturamento que nao esteja no diagnostico. Se faltar dado, deixe planned vazio e liste em missing.
-Responda SOMENTE JSON.`,
+    system: `Voce e o Planejador ORBE. Obedeça o metodo compilado. Pode contrariar o consultor se a opiniao nao for estrategica.
+NUNCA invente numero. Se faltar DRE, planned fica vazio.
+Responda SOMENTE JSON.
+
+${formatMethodForPrompt()}`,
     user: `Cliente: ${opts.clientName}
 Setor: ${opts.sector ?? "nao informado"}
+
+${formatDreBrief(dre)}
 
 Diagnostico consolidado:
 ${opts.diagnosticJson.slice(0, 14000)}
@@ -69,23 +60,26 @@ Pesquisa de mercado (se houver):
 ${(opts.marketSummary ?? "(ainda sem Apify)").slice(0, 3000)}
 
 Principios:
-${(opts.knowledge ?? "").slice(0, 2500)}
+${(opts.knowledge ?? "").slice(0, 2000)}
 
-Retorne exatamente 4 goals, um por perspectiva:
+Retorne:
 {
+  "globals": [{ "title": "meta global (ate 6, so o que a sessao sustentar)", "notes": "para qual objetivo da empresa" }],
   "goals": [
     {
       "perspective": "financeira|clientes|processos|aprendizagem",
-      "title": "meta anual",
-      "notes": "causa-efeito BSC",
+      "title": "meta da perspectiva que colabora com as globais",
+      "notes": "hipotese se–entao de causa-efeito",
       "kpis": [{ "name": "", "unit": "percentual|numero|moeda", "direction": "aumentar|diminuir", "planned": {"01": null}, "missing": "o que falta para numerar" }],
-      "actions": [{ "title": "", "how": "passo concreto", "ownerName": "papel", "sector": "area" }]
+      "actions": [{ "title": "", "how": "5W2H resumido", "ownerName": "papel dito na sessao ou A definir", "sector": "area" }]
     }
   ],
-  "missing": ["o que o consultor precisa obter"],
-  "openQuestions": []
-}`,
-    maxTokens: 5000,
+  "missing": ["o que falta obter"],
+  "openQuestions": [],
+  "challenges": ["onde discordar do consultor, se houver, com motivo estrategico"]
+}
+Exatamente 4 goals, um por perspectiva. Ate 6 globals sem inventar as que faltam.`,
+    maxTokens: 5500,
   });
 
   const byPerspective = new Map<Perspective, CycleGoal>();
@@ -131,9 +125,17 @@ Retorne exatamente 4 goals, um por perspectiva:
     }
   }
 
-  return {
-    goals: PERSPECTIVES.map((perspective) => byPerspective.get(perspective)!),
-    missing: Array.isArray(raw.missing) ? raw.missing.map(String) : [],
-    openQuestions: Array.isArray(raw.openQuestions) ? raw.openQuestions.map(String) : [],
-  };
+  return enforceMapaBsc(
+    {
+      globals: (raw.globals ?? []).map((item) => ({
+        title: String(item.title ?? "").slice(0, 180),
+        notes: String(item.notes ?? ""),
+      })),
+      goals: PERSPECTIVES.map((perspective) => byPerspective.get(perspective)!),
+      missing: Array.isArray(raw.missing) ? raw.missing.map(String) : [],
+      openQuestions: Array.isArray(raw.openQuestions) ? raw.openQuestions.map(String) : [],
+      challenges: Array.isArray(raw.challenges) ? raw.challenges.map(String) : [],
+    },
+    dre,
+  );
 }
