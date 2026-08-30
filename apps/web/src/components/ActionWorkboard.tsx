@@ -6,10 +6,11 @@ import {
   type ActionStatus,
   type Perspective,
 } from "@orbe/shared";
-import { Button, EmptyNote, Input, Select } from "@/components/ui";
+import { EmptyNote, Input, Select } from "@/components/ui";
 import { toDateInput } from "@/lib/actions/schedule";
+import { isActionOverdue } from "@/lib/actions/pulse";
 import { formatDate } from "@/lib/format";
-import { suggestActionDates, updateActionSchedule, updateActionStatus } from "@/app/app/actions";
+import { updateActionSchedule, updateActionStatus } from "@/app/app/actions";
 
 type ActionRow = {
   id: string;
@@ -36,14 +37,15 @@ function perspectiveLabel(value?: string | null) {
 }
 
 function Prazo({ action }: { action: ActionRow }) {
+  const late = isActionOverdue(action);
   if (!action.dueDate && !action.businessDays) {
     return <span className="text-slate-400">sem prazo</span>;
   }
   return (
-    <span>
-      {action.businessDays ? `${action.businessDays} du` : "prazo"}
+    <span className={late ? "text-red-700" : "text-[#012245]"}>
+      <strong>{formatDate(action.dueDate)}</strong>
       <span className="mt-0.5 block text-xs text-slate-500">
-        {formatDate(action.startDate)} → {formatDate(action.dueDate)}
+        {action.businessDays ? `${action.businessDays} du` : "prazo"} · {formatDate(action.startDate)}
       </span>
     </span>
   );
@@ -66,6 +68,41 @@ function StatusMove({ actionId, clientId, status }: { actionId: string; clientId
   );
 }
 
+function ActionCard({ action, clientId }: { action: ActionRow; clientId: string }) {
+  const late = isActionOverdue(action);
+  return (
+    <article className={`rounded-2xl border p-4 ${late ? "border-red-200 bg-red-50" : "border-[#012245]/10 bg-white"}`}>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <p className="font-semibold text-[#012245]">{action.title}</p>
+          <p className="mt-1 text-xs text-slate-500">
+            {perspectiveLabel(action.perspective) || "Sem perspectiva"}
+            {action.ownerName ? ` · ${action.ownerName}` : " · sem dono"}
+          </p>
+        </div>
+        <div className="text-right text-sm">
+          <Prazo action={action} />
+        </div>
+      </div>
+      <div className="mt-3 max-w-sm">
+        <StatusMove actionId={action.id} clientId={clientId} status={action.status} />
+      </div>
+      <details className="mt-3">
+        <summary className="cursor-pointer text-xs font-semibold text-[#2e7271]">Como e prazo</summary>
+        {action.how ? <p className="mt-2 whitespace-pre-wrap text-sm text-slate-600">{action.how}</p> : null}
+        <form action={updateActionSchedule.bind(null, action.id, clientId)} className="mt-3 grid gap-2 sm:grid-cols-3">
+          <Input name="startDate" type="date" defaultValue={toDateInput(action.startDate)} />
+          <Input name="businessDays" type="number" min={3} max={45} defaultValue={action.businessDays ?? 10} />
+          <Input name="dueDate" type="date" defaultValue={toDateInput(action.dueDate)} />
+          <button className="text-left text-xs font-semibold text-[#2e7271]" type="submit">
+            Salvar prazo
+          </button>
+        </form>
+      </details>
+    </article>
+  );
+}
+
 export function ActionWorkboard({
   clientId,
   actions,
@@ -75,82 +112,44 @@ export function ActionWorkboard({
   actions: ActionRow[];
   vista: "lista" | "quadro";
 }) {
+  const open = actions.filter((action) => action.status !== "concluido");
+  const late = open.filter(isActionOverdue).length;
+  const next = open.find((action) => action.dueDate);
+
   return (
     <div className="min-w-0">
-      <div className="mb-4 flex flex-wrap items-center gap-2">
-        <Link
-          href={`/app/clients/${clientId}/actions`}
-          className={`rounded-full px-3 py-1.5 text-sm font-semibold ${
-            vista === "lista" ? "bg-[#012245] text-white" : "bg-white text-[#012245] ring-1 ring-[#012245]/10"
-          }`}
-        >
-          Lista
-        </Link>
-        <Link
-          href={`/app/clients/${clientId}/actions?vista=quadro`}
-          className={`rounded-full px-3 py-1.5 text-sm font-semibold ${
-            vista === "quadro" ? "bg-[#012245] text-white" : "bg-white text-[#012245] ring-1 ring-[#012245]/10"
-          }`}
-        >
-          Quadro
-        </Link>
-        <form action={suggestActionDates.bind(null, clientId)}>
-          <Button type="submit" variant="secondary">
-            Sugerir prazos
-          </Button>
-        </form>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-slate-600">
+          {open.length} em curso
+          {late ? ` · ${late} atrasada${late > 1 ? "s" : ""}` : ""}
+          {next ? ` · proxima ${formatDate(next.dueDate)}` : ""}
+        </p>
+        <div className="flex flex-wrap items-center gap-2">
+          <Link
+            href={`/app/clients/${clientId}/actions`}
+            className={`rounded-full px-3 py-1.5 text-sm font-semibold ${
+              vista === "lista" ? "bg-[#012245] text-white" : "bg-white text-[#012245] ring-1 ring-[#012245]/10"
+            }`}
+          >
+            Lista
+          </Link>
+          <Link
+            href={`/app/clients/${clientId}/actions?vista=quadro`}
+            className={`rounded-full px-3 py-1.5 text-sm font-semibold ${
+              vista === "quadro" ? "bg-[#012245] text-white" : "bg-white text-[#012245] ring-1 ring-[#012245]/10"
+            }`}
+          >
+            Quadro
+          </Link>
+        </div>
       </div>
 
       {vista === "lista" ? (
-        <div className="overflow-x-auto rounded-3xl border border-[#012245]/10 bg-white">
-          <table className="w-full min-w-[880px] table-fixed text-left text-sm">
-            <thead className="bg-[#f7f4ee] text-xs uppercase tracking-wide text-slate-500">
-              <tr>
-                <th className="w-[34%] px-4 py-3 font-semibold">Acao</th>
-                <th className="w-[12%] px-4 py-3 font-semibold">Perspectiva</th>
-                <th className="w-[12%] px-4 py-3 font-semibold">Quem</th>
-                <th className="w-[16%] px-4 py-3 font-semibold">Prazo</th>
-                <th className="w-[26%] px-4 py-3 font-semibold">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {actions.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="px-4 py-6 text-slate-500">
-                    Nenhuma acao ainda. O ciclo preenche o 5W2H.
-                  </td>
-                </tr>
-              ) : (
-                actions.map((action) => (
-                  <tr key={action.id} className="border-t border-slate-100 align-top">
-                    <td className="px-4 py-3">
-                      <p className="line-clamp-2 font-semibold text-[#012245]">{action.title}</p>
-                      {action.how ? <p className="mt-1 line-clamp-1 text-xs text-slate-500">{action.how}</p> : null}
-                    </td>
-                    <td className="px-4 py-3 text-slate-600">{perspectiveLabel(action.perspective) || "—"}</td>
-                    <td className="px-4 py-3 text-slate-600">{action.ownerName ?? "—"}</td>
-                    <td className="px-4 py-3 text-slate-600">
-                      <Prazo action={action} />
-                      <details className="mt-2">
-                        <summary className="cursor-pointer text-xs font-semibold text-[#2e7271]">Ajustar</summary>
-                        <form action={updateActionSchedule.bind(null, action.id, clientId)} className="mt-2 grid gap-2">
-                          <Input name="startDate" type="date" defaultValue={toDateInput(action.startDate)} />
-                          <Input name="businessDays" type="number" min={3} max={45} defaultValue={action.businessDays ?? 10} />
-                          <Input name="dueDate" type="date" defaultValue={toDateInput(action.dueDate)} />
-                          <button className="text-left text-xs font-semibold text-[#2e7271]" type="submit">
-                            Salvar prazo
-                          </button>
-                        </form>
-                      </details>
-                    </td>
-                    <td className="px-4 py-3">
-                      <StatusMove actionId={action.id} clientId={clientId} status={action.status} />
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+        <div className="grid gap-3">
+          {actions.length === 0 ? <EmptyNote>Nenhuma acao ainda. O ciclo preenche o 5W2H com prazo.</EmptyNote> : null}
+          {actions.map((action) => (
+            <ActionCard key={action.id} action={action} clientId={clientId} />
+          ))}
         </div>
       ) : (
         <div className="grid min-w-0 gap-4 lg:grid-cols-3">
@@ -168,15 +167,17 @@ export function ActionWorkboard({
                     <article
                       key={action.id}
                       className={`min-w-0 rounded-2xl border p-3 ${
-                        action.status === "atrasado" ? "border-red-200 bg-red-50" : "border-slate-100 bg-[#f7f4ee]/60"
+                        isActionOverdue(action) ? "border-red-200 bg-red-50" : "border-slate-100 bg-[#f7f4ee]/60"
                       }`}
                     >
-                      <p className="line-clamp-2 text-sm font-semibold text-[#012245]">{action.title}</p>
-                      <p className="mt-1 truncate text-xs text-slate-500">
+                      <p className="text-sm font-semibold text-[#012245]">{action.title}</p>
+                      <p className="mt-1 text-xs text-slate-500">
                         {action.ownerName ?? "Sem responsavel"}
                         {perspectiveLabel(action.perspective) ? ` · ${perspectiveLabel(action.perspective)}` : ""}
-                        {action.businessDays ? ` · ${action.businessDays} du` : ""}
-                        {` · ${formatDate(action.startDate)} → ${formatDate(action.dueDate)}`}
+                      </p>
+                      <p className="mt-1 text-xs font-semibold text-[#012245]">
+                        {action.businessDays ? `${action.businessDays} du · ` : ""}
+                        {formatDate(action.dueDate)}
                       </p>
                       <div className="mt-3">
                         <StatusMove actionId={action.id} clientId={clientId} status={action.status} />

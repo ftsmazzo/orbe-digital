@@ -22,6 +22,7 @@ import {
   missingFichaFields,
   pickBestDiagnostic,
 } from "@/lib/agents/process-status";
+import { stampMissingActionDates } from "@/lib/actions/stamp-dates";
 import { formatDate, formatDateTime } from "@/lib/format";
 import { getCurrentOrg } from "@/lib/org";
 import {
@@ -50,6 +51,8 @@ export default async function OperatePage({ params }: { params: Promise<{ id: st
   const { orgId } = await getCurrentOrg();
   const [client] = await db.select().from(clients).where(and(eq(clients.id, id), eq(clients.organizationId, orgId))).limit(1);
   if (!client) notFound();
+
+  await stampMissingActionDates(orgId, id);
 
   const [sessionRows, diagnosticRows, goalRows, indicatorRows, proposalRows, documentRows, actionRows, marketRows] =
     await Promise.all([
@@ -339,13 +342,10 @@ export default async function OperatePage({ params }: { params: Promise<{ id: st
                     {actions.map((action) => (
                       <li key={action.id} className="rounded-xl bg-[#f7f4ee] px-3 py-2">
                         <strong className="text-[#012245]">{action.title}</strong>
-                        {action.how ? <span className="mt-0.5 block text-slate-600">{action.how}</span> : null}
-                        <span className="mt-0.5 block text-slate-500">
+                        <span className="mt-0.5 block text-sm text-slate-600">
                           {action.ownerName ?? "Dono a definir"}
-                          {action.sector ? ` · ${action.sector}` : ""}
-                          {action.businessDays ? ` · ${action.businessDays} dias uteis` : ""}
-                          {action.dueDate ? ` · ${formatDate(action.startDate)} → ${formatDate(action.dueDate)}` : ""}
-                          {` · ${action.status}`}
+                          {action.dueDate ? ` · prazo ${formatDate(action.dueDate)}` : ""}
+                          {action.businessDays ? ` · ${action.businessDays} du` : ""}
                         </span>
                       </li>
                     ))}

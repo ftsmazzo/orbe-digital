@@ -28,6 +28,7 @@ import { classifyDocument } from "@/lib/documents/classify";
 import { extractDocumentText } from "@/lib/documents/ocr";
 import { retrieveKnowledge } from "@/lib/knowledge/retrieve";
 import { getCurrentOrg } from "@/lib/org";
+import { stampMissingActionDates } from "@/lib/actions/stamp-dates";
 import { persistFitFromTranscript } from "@/lib/sales/persist-fit";
 import { ensureSessionMemory, SESSION_MEMORY_KIND } from "@/lib/sessions/session-memory";
 import { putObject } from "@/lib/storage";
@@ -610,6 +611,8 @@ async function persistCyclePlan(orgId: string, clientId: string, cycle: CyclePla
       }
     }
   }
+
+  await stampMissingActionDates(orgId, clientId);
 }
 
 async function planFromCockpit(orgId: string, clientId: string) {

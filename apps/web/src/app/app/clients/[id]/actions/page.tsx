@@ -3,7 +3,8 @@ import { and, desc, eq } from "drizzle-orm";
 import { ACTION_STATUS_LABELS, ACTION_STATUSES, PERSPECTIVE_LABELS_DANIEL, PERSPECTIVES, type ActionStatus } from "@orbe/shared";
 import { ActionWorkboard } from "@/components/ActionWorkboard";
 import { ClientWorkspaceNav } from "@/components/ClientWorkspaceNav";
-import { Button, Card, CardTitle, Field, Input, PageHeader, Select, Textarea } from "@/components/ui";
+import { Button, Field, Input, PageHeader, Select, Textarea } from "@/components/ui";
+import { stampMissingActionDates } from "@/lib/actions/stamp-dates";
 import { actionItems, clients, db, goals, indicators } from "@/lib/db";
 import { getCurrentOrg } from "@/lib/org";
 import { createActionItem } from "../../../actions";
@@ -20,6 +21,9 @@ export default async function ClientActionsPage({
   const { orgId } = await getCurrentOrg();
   const [client] = await db.select().from(clients).where(and(eq(clients.id, id), eq(clients.organizationId, orgId))).limit(1);
   if (!client) notFound();
+
+  await stampMissingActionDates(orgId, id);
+
   const [actionRows, goalRows, indicatorRows] = await Promise.all([
     db.select().from(actionItems).where(and(eq(actionItems.clientId, id), eq(actionItems.organizationId, orgId))).orderBy(desc(actionItems.createdAt)),
     db.select().from(goals).where(and(eq(goals.clientId, id), eq(goals.organizationId, orgId))),
@@ -30,7 +34,7 @@ export default async function ClientActionsPage({
     <>
       <PageHeader
         title={`Acoes · ${client.tradeName ?? client.name}`}
-        description="O ciclo sugere inicio, dias uteis e prazo. Voce ajusta e move o status."
+        description="O ciclo cria a acao com inicio, dias uteis e prazo. Aqui voce so acompanha e move."
       />
       <ClientWorkspaceNav clientId={id} current="actions" />
 
@@ -51,9 +55,9 @@ export default async function ClientActionsPage({
         }))}
       />
 
-      <Card className="mt-6">
-        <CardTitle title="Nova acao" hint="Use se o ciclo nao cobriu um plano que a sessao pediu." />
-        <form action={createActionItem.bind(null, id)} className="grid gap-3 md:grid-cols-2">
+      <details className="mt-6 rounded-3xl border border-[#012245]/10 bg-white p-6">
+        <summary className="cursor-pointer text-sm font-semibold text-[#012245]">Incluir acao a mao</summary>
+        <form action={createActionItem.bind(null, id)} className="mt-4 grid gap-3 md:grid-cols-2">
           <Field label="Titulo"><Input name="title" required /></Field>
           <Field label="Responsavel"><Input name="ownerName" /></Field>
           <div className="md:col-span-2">
@@ -80,19 +84,19 @@ export default async function ClientActionsPage({
             </Select>
           </Field>
           <Field label="Setor"><Input name="sector" /></Field>
-          <Field label="Inicio"><Input name="startDate" type="date" /></Field>
-          <Field label="Prazo"><Input name="dueDate" type="date" /></Field>
-          <Field label="Dias uteis"><Input name="businessDays" type="number" /></Field>
           <Field label="Status">
             <Select name="status" defaultValue="nao_iniciado">
               {ACTION_STATUSES.map((status) => <option key={status} value={status}>{ACTION_STATUS_LABELS[status]}</option>)}
             </Select>
           </Field>
+          <div className="md:col-span-2 text-sm text-slate-500">
+            Sem data no formulario o ORBE calcula inicio, dias uteis e prazo.
+          </div>
           <div className="md:col-span-2">
             <Button>Criar acao</Button>
           </div>
         </form>
-      </Card>
+      </details>
     </>
   );
 }

@@ -34,7 +34,8 @@ import { generateReportHtml } from "@/lib/agents/report";
 import { completeJson, hasAnthropicKey } from "@/lib/ai/claude";
 import { pickBestDiagnostic } from "@/lib/agents/process-status";
 import { readDreBrief } from "@/lib/agents/tools/leitor-dre";
-import { replaceQuando, scheduleActionWindow } from "@/lib/actions/schedule";
+import { replaceQuando, scheduleActionWindow, toDateInput } from "@/lib/actions/schedule";
+import { stampMissingActionDates } from "@/lib/actions/stamp-dates";
 import { dueDateFromBusinessDays } from "@/lib/finance/business-days";
 import { computePayrollCost } from "@/lib/finance/payroll-cost";
 import { computeValuation, type ValuationInput } from "@/lib/finance/valuation";
@@ -451,20 +452,23 @@ export async function createActionItem(clientId: string, formData: FormData) {
   if (!ACTION_STATUSES.includes(status)) return;
 
   const { orgId } = await getCurrentOrg();
-  const startDate = parseDate(text(formData, "startDate"));
+  const title = text(formData, "title") ?? "Acao ORBE";
+  const how = text(formData, "how");
+  let startDate = parseDate(text(formData, "startDate"));
   let dueDate = parseDate(text(formData, "dueDate"));
-  const businessDays = numberValue(formData, "businessDays");
+  let businessDays = numberValue(formData, "businessDays");
 
-  if (startDate && businessDays && !dueDate) {
-    const [org] = await db.select().from(organizations).where(eq(organizations.id, orgId)).limit(1);
-    const settings = mergeOrgSettings(org?.settings);
-    const dueIso = dueDateFromBusinessDays(
-      startDate.toISOString().slice(0, 10),
-      businessDays,
-      startDate.getFullYear(),
-      settings.localHolidays,
-    );
-    dueDate = parseDate(dueIso);
+  if (!startDate || !dueDate || !businessDays) {
+    const window = scheduleActionWindow({
+      perspective,
+      title,
+      how,
+      hintedDays: businessDays,
+      index: 0,
+    });
+    startDate = startDate ?? parseDate(window.startDate);
+    dueDate = dueDate ?? parseDate(window.dueDate);
+    businessDays = businessDays ?? window.businessDays;
   }
 
   await db.insert(actionItems).values({
@@ -473,8 +477,12 @@ export async function createActionItem(clientId: string, formData: FormData) {
     goalId: text(formData, "goalId"),
     indicatorId: text(formData, "indicatorId"),
     perspective,
-    title: text(formData, "title") ?? "Acao ORBE",
-    how: text(formData, "how"),
+    title,
+    how: replaceQuando(how, {
+      businessDays: businessDays ?? 10,
+      startDate: toDateInput(startDate),
+      dueDate: toDateInput(dueDate),
+    }),
     sector: text(formData, "sector"),
     ownerName: text(formData, "ownerName"),
     startDate,
@@ -495,6 +503,9 @@ export async function updateActionStatus(actionId: string, clientId: string, for
     .set({ status, updatedAt: new Date() })
     .where(and(eq(actionItems.id, actionId), eq(actionItems.organizationId, orgId)));
   revalidatePath(`/app/clients/${clientId}/actions`);
+  revalidatePath(`/app/clients/${clientId}/dashboard`);
+  revalidatePath("/app/dashboard");
+  revalidatePath("/app/actions");
 }
 
 export async function updateActionSchedule(actionId: string, clientId: string, formData: FormData) {
@@ -544,34 +555,7 @@ export async function suggestActionDates(clientId: string) {
   const { orgId } = await getCurrentOrg();
   const [org] = await db.select().from(organizations).where(eq(organizations.id, orgId)).limit(1);
   const holidays = mergeOrgSettings(org?.settings).localHolidays ?? [];
-  const rows = await db
-    .select()
-    .from(actionItems)
-    .where(and(eq(actionItems.clientId, clientId), eq(actionItems.organizationId, orgId)))
-    .orderBy(desc(actionItems.createdAt));
-  let index = 0;
-  for (const row of rows) {
-    if (row.dueDate && row.businessDays) continue;
-    const window = scheduleActionWindow({
-      perspective: row.perspective,
-      title: row.title,
-      how: row.how,
-      hintedDays: row.businessDays,
-      index,
-      extraHolidays: holidays,
-    });
-    index += 1;
-    await db
-      .update(actionItems)
-      .set({
-        startDate: parseDate(window.startDate),
-        dueDate: parseDate(window.dueDate),
-        businessDays: window.businessDays,
-        how: replaceQuando(row.how, window),
-        updatedAt: new Date(),
-      })
-      .where(eq(actionItems.id, row.id));
-  }
+  await stampMissingActionDates(orgId, clientId, holidays);
   revalidatePath(`/app/clients/${clientId}/actions`);
   revalidatePath(`/app/clients/${clientId}/dashboard`);
 }
