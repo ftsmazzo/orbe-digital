@@ -1,10 +1,10 @@
-import { and, asc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { clientDocuments, consultingSessions, db } from "@/lib/db";
 import { formatDateTime } from "@/lib/format";
 import { formatSessionMarkdown, SESSION_KIND_LABEL } from "@/lib/sessions/format-transcript";
 
 export const SESSION_MEMORY_KIND = "memoria";
-export const SESSION_MEMORY_TITLE = "Memoria das sessoes";
+export const SESSION_MEMORY_TITLE = "Dossie";
 
 type MemoryPayload = {
   sessionIds?: string[];
@@ -32,7 +32,7 @@ async function loadSessionsWithText(orgId: string, clientId: string) {
     .select()
     .from(consultingSessions)
     .where(and(eq(consultingSessions.organizationId, orgId), eq(consultingSessions.clientId, clientId)))
-    .orderBy(asc(consultingSessions.createdAt));
+    .orderBy(desc(consultingSessions.createdAt));
   return rows.filter((row) => row.transcriptRaw?.trim());
 }
 
@@ -42,16 +42,18 @@ export function buildSessionMemoryMarkdown(
 ) {
   const chapters = sessions.map((session, index) => {
     const kind = SESSION_KIND_LABEL[session.kind] ?? session.kind;
+    const when = formatDateTime(session.createdAt);
     const body = formatSessionMarkdown(session.transcriptRaw ?? "");
-    return `## Sessao ${index + 1} — ${session.title}\n\n- Tipo: ${kind}\n- Data: ${formatDateTime(session.createdAt)}\n\n${body}`;
+    const recency = index === 0 ? "mais recente" : `${index + 1} de ${sessions.length}`;
+    return `## ${when} — ${session.title}\n\n- Relato: ${recency}\n- Quando: ${when}\n- Tipo: ${kind}\n- Sessao original permanece no gravador, com data e audio.\n\n${body}`;
   });
 
   return [
-    `# Memoria das sessoes — ${clientName}`,
+    `# Dossie — ${clientName}`,
     "",
-    "Documento vivo. Cada reuniao entra como um capitulo. Fit comercial e ciclo ORBE leem daqui, nao de cada sessao isolada.",
+    "Arquivo que o motor ORBE le. Relatos do mais novo ao mais velho, com dia e hora. As sessoes originais nao sao apagadas nem misturadas.",
     "",
-    `${sessions.length} sessao(oes) no acervo.`,
+    `${sessions.length} relato(s).`,
     "",
     chapters.join("\n\n---\n\n"),
   ].join("\n");
@@ -61,7 +63,7 @@ export async function rebuildSessionMemory(opts: { orgId: string; clientId: stri
   const sessions = await loadSessionsWithText(opts.orgId, opts.clientId);
   const markdown = sessions.length
     ? buildSessionMemoryMarkdown(opts.clientName, sessions)
-    : `# Memoria das sessoes — ${opts.clientName}\n\nAinda nao ha transcricao nesta empresa.`;
+    : `# Dossie — ${opts.clientName}\n\nAinda nao ha transcricao nesta empresa.`;
   const payload: MemoryPayload = {
     sessionIds: sessions.map((row) => row.id),
     sessionCount: sessions.length,
@@ -108,6 +110,6 @@ export async function ensureSessionMemory(opts: { orgId: string; clientId: strin
   const stored = ((memory?.payload ?? {}) as MemoryPayload).sessionIds ?? [];
   const current = sessions.map((row) => row.id);
   const same = current.length === stored.length && current.every((id, index) => id === stored[index]);
-  if (memory && same) return memory;
+  if (memory && same && memory.title === SESSION_MEMORY_TITLE) return memory;
   return rebuildSessionMemory(opts);
 }

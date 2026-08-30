@@ -31,7 +31,7 @@ ${rubric}
 
 Regra de ouro: nunca aceite cliente que voce nao respeita intelectualmente.
 
-Memoria das sessoes (documento vivo, nao uma gravacao isolada):
+Dossie (relatos do mais novo ao mais velho; nao leia uma sessao isolada):
 """
 ${transcript.slice(0, 40_000)}
 """

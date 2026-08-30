@@ -65,7 +65,7 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
           <Card>
             <h2 className="text-lg font-semibold text-[#012245]">Esta conversa</h2>
             <p className="mt-1 text-sm text-slate-500">
-              Entra como capitulo na memoria da empresa. O fit le o documento inteiro, nao so esta sessao.
+              Entra no dossie (mais novo em cima). O motor le o dossie, nao esta sessao isolada.
             </p>
             <div className="mt-4 min-h-40 rounded-2xl bg-slate-50 p-5">
               {hasTranscript ? (
@@ -82,7 +82,7 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
               {hasTranscript ? "Corrigir transcricao" : "Colar transcricao"}
             </h2>
             <p className="mt-1 text-sm text-slate-500">
-              Ao salvar, o texto e formatado e incrementa a memoria. Diagnostico e ciclo saem so do cockpit.
+              Ao salvar, o texto e formatado e sobe para o topo do dossie. Diagnostico e ciclo saem so do cockpit.
             </p>
             <form action={applySessionTranscript.bind(null, session.id)} className="mt-4 grid gap-3">
               <Field label="Texto da conversa">
@@ -107,7 +107,7 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
             </p>
             {client ? (
               <div className="mt-4 grid gap-2">
-                <LinkButton href={`/app/clients/${client.id}/memory`}>Abrir memoria completa</LinkButton>
+                <LinkButton href={`/app/clients/${client.id}/memory`}>Abrir dossie</LinkButton>
                 <LinkButton href={`/app/clients/${client.id}/operate`}>Abrir cockpit desta empresa</LinkButton>
               </div>
             ) : null}

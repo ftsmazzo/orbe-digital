@@ -1,15 +1,22 @@
 import { notFound } from "next/navigation";
 import { and, desc, eq } from "drizzle-orm";
-import { ACTION_STATUS_LABELS, ACTION_STATUSES, PERSPECTIVE_LABELS, PERSPECTIVES } from "@orbe/shared";
+import { ACTION_STATUS_LABELS, ACTION_STATUSES, PERSPECTIVE_LABELS_DANIEL, PERSPECTIVES, type ActionStatus } from "@orbe/shared";
+import { ActionWorkboard } from "@/components/ActionWorkboard";
 import { ClientWorkspaceNav } from "@/components/ClientWorkspaceNav";
-import { Button, Card, CardTitle, EmptyNote, Field, Input, PageHeader, Select, Textarea } from "@/components/ui";
+import { Button, Card, CardTitle, Field, Input, PageHeader, Select, Textarea } from "@/components/ui";
 import { actionItems, clients, db, goals, indicators } from "@/lib/db";
-import { formatDate } from "@/lib/format";
 import { getCurrentOrg } from "@/lib/org";
-import { createActionItem, updateActionStatus } from "../../../actions";
+import { createActionItem } from "../../../actions";
 
-export default async function ClientActionsPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function ClientActionsPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ vista?: string }>;
+}) {
   const { id } = await params;
+  const { vista } = await searchParams;
   const { orgId } = await getCurrentOrg();
   const [client] = await db.select().from(clients).where(and(eq(clients.id, id), eq(clients.organizationId, orgId))).limit(1);
   if (!client) notFound();
@@ -23,11 +30,26 @@ export default async function ClientActionsPage({ params }: { params: Promise<{ 
     <>
       <PageHeader
         title={`Acoes · ${client.tradeName ?? client.name}`}
-        description="Quadro 5W2H. O ciclo cria as acoes; voce move o status e ajusta prazo."
+        description="Lista para operar no dia a dia. Quadro em 3 faixas se quiser ver o fluxo. O ciclo cria as acoes; voce move o status."
       />
       <ClientWorkspaceNav clientId={id} current="actions" />
 
-      <Card className="mb-6">
+      <ActionWorkboard
+        clientId={id}
+        vista={vista === "quadro" ? "quadro" : "lista"}
+        actions={actionRows.map((action) => ({
+          id: action.id,
+          title: action.title,
+          how: action.how,
+          ownerName: action.ownerName,
+          dueDate: action.dueDate,
+          status: action.status as ActionStatus,
+          perspective: action.perspective,
+          sector: action.sector,
+        }))}
+      />
+
+      <Card className="mt-6">
         <CardTitle title="Nova acao" hint="Use se o ciclo nao cobriu um plano que a sessao pediu." />
         <form action={createActionItem.bind(null, id)} className="grid gap-3 md:grid-cols-2">
           <Field label="Titulo"><Input name="title" required /></Field>
@@ -39,7 +61,7 @@ export default async function ClientActionsPage({ params }: { params: Promise<{ 
             <Select name="perspective">
               <option value="">Sem perspectiva</option>
               {PERSPECTIVES.map((perspective) => (
-                <option key={perspective} value={perspective}>{PERSPECTIVE_LABELS[perspective]}</option>
+                <option key={perspective} value={perspective}>{PERSPECTIVE_LABELS_DANIEL[perspective]}</option>
               ))}
             </Select>
           </Field>
@@ -69,38 +91,6 @@ export default async function ClientActionsPage({ params }: { params: Promise<{ 
           </div>
         </form>
       </Card>
-
-      <div className="-mx-6 overflow-x-auto px-6">
-        <div className="flex min-w-max gap-4 pb-2">
-          {ACTION_STATUSES.map((status) => {
-            const rows = actionRows.filter((action) => action.status === status);
-            return (
-              <Card key={status} className="w-[260px] shrink-0">
-                <CardTitle title={ACTION_STATUS_LABELS[status]} hint={`${rows.length} item(ns)`} />
-                <div className="space-y-3">
-                  {rows.length === 0 ? <EmptyNote>Vazio</EmptyNote> : null}
-                  {rows.map((action) => (
-                    <div key={action.id} className="rounded-2xl border border-slate-100 p-3">
-                      <strong className="break-words text-sm">{action.title}</strong>
-                      <p className="mt-1 text-xs text-slate-500">
-                        {action.ownerName ?? "Sem responsavel"} · prazo {formatDate(action.dueDate)}
-                      </p>
-                      <form action={updateActionStatus.bind(null, action.id, id)} className="mt-3">
-                        <Select name="status" defaultValue={action.status}>
-                          {ACTION_STATUSES.map((option) => (
-                            <option key={option} value={option}>{ACTION_STATUS_LABELS[option]}</option>
-                          ))}
-                        </Select>
-                        <button className="mt-2 text-xs font-semibold text-[#2e7271]" type="submit">Mover</button>
-                      </form>
-                    </div>
-                  ))}
-                </div>
-              </Card>
-            );
-          })}
-        </div>
-      </div>
     </>
   );
 }

@@ -24,14 +24,14 @@ export default async function ClientMemoryPage({ params }: { params: Promise<{ i
   return (
     <>
       <PageHeader
-        title="Memoria das sessoes"
-        description={`${client.tradeName ?? client.name} · documento vivo em markdown. Fit e ciclo leem daqui.`}
+        title="Dossie"
+        description={`${client.tradeName ?? client.name} · relatos do mais novo ao mais velho. E este arquivo que o motor le. As sessoes originais ficam intactas.`}
         action={<LinkButton href={`/app/clients/${id}/operate`}>Voltar a operar</LinkButton>}
       />
       <ClientWorkspaceNav clientId={id} current="memory" />
       <Card>
         <p className="text-sm text-slate-500">
-          {payload.sessionCount ?? 0} sessao(oes) no acervo
+          {payload.sessionCount ?? 0} relato(s)
           {memory?.updatedAt ? ` · atualizado ${formatDateTime(memory.updatedAt)}` : ""}
         </p>
         <div className="mt-5">

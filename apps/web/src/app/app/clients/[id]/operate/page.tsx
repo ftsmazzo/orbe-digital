@@ -239,15 +239,15 @@ export default async function OperatePage({ params }: { params: Promise<{ id: st
           {documentRows.some((doc) => doc.kind === "memoria") ? (
             <p className="mt-3 text-sm">
               <Link href={`/app/clients/${id}/memory`} className="font-semibold text-[#2e7271]">
-                Memoria das sessoes
+                Dossie
               </Link>
-              {" · documento vivo que o fit e o ciclo leem"}
+              {" · relatos do mais novo ao mais velho; e o que o motor le"}
             </p>
           ) : (
             <p className="mt-3 text-sm text-slate-400">
-              A memoria aparece depois da primeira transcricao.{" "}
+              O dossie aparece depois da primeira transcricao.{" "}
               <Link href={`/app/clients/${id}/memory`} className="font-semibold text-[#2e7271]">
-                Abrir memoria
+                Abrir dossie
               </Link>
             </p>
           )}

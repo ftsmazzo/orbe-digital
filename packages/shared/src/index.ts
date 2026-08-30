@@ -329,7 +329,7 @@ export const DOCUMENT_KIND_LABELS: Record<DocumentKind, string> = {
   organograma: "Organograma / equipe",
   anotacao: "Anotacao",
   proposta: "Proposta",
-  memoria: "Memoria das sessoes",
+  memoria: "Dossie",
   outro: "Outro",
 };
 
