@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { extractJsonText, parseLlmJson } from "@/lib/ai/parse-llm-json";
 
 function openRouterKey() {
   return process.env.OPENROUTER_API_KEY?.trim() || process.env.OPEN_ROUTER_API_KEY?.trim() || "";
@@ -28,26 +29,28 @@ function getClient() {
   return new Anthropic({ apiKey });
 }
 
-function extractJsonText(raw: string) {
-  const trimmed = raw.trim();
-  const fenced = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i);
-  const candidate = fenced?.[1]?.trim() ?? trimmed;
-  const start = candidate.indexOf("{");
-  const end = candidate.lastIndexOf("}");
-  if (start >= 0 && end > start) {
-    return candidate.slice(start, end + 1);
-  }
-  return candidate;
-}
-
-async function completeJsonViaOpenRouter<T>(opts: {
+async function completeOpenRouterText(opts: {
   system: string;
   user: string;
   maxTokens?: number;
-}): Promise<T> {
+  jsonObject?: boolean;
+}): Promise<string> {
   const apiKey = openRouterKey();
   if (!apiKey) {
     throw new Error("OPENROUTER_API_KEY nao configurada.");
+  }
+
+  const body: Record<string, unknown> = {
+    model: getOpenRouterModel(),
+    max_tokens: opts.maxTokens ?? 4096,
+    temperature: 0,
+    messages: [
+      { role: "system", content: opts.system },
+      { role: "user", content: opts.user },
+    ],
+  };
+  if (opts.jsonObject !== false) {
+    body.response_format = { type: "json_object" };
   }
 
   const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
@@ -58,18 +61,14 @@ async function completeJsonViaOpenRouter<T>(opts: {
       "HTTP-Referer": process.env.BETTER_AUTH_URL ?? "https://orbe-app.kxryyk.easypanel.host",
       "X-Title": "ORBE Digital",
     },
-    body: JSON.stringify({
-      model: getOpenRouterModel(),
-      max_tokens: opts.maxTokens ?? 4096,
-      messages: [
-        { role: "system", content: opts.system },
-        { role: "user", content: opts.user },
-      ],
-    }),
+    body: JSON.stringify(body),
   });
 
   if (!response.ok) {
     const detail = await response.text().catch(() => "");
+    if (opts.jsonObject !== false && response.status === 400 && /response_format|json_object/i.test(detail)) {
+      return completeOpenRouterText({ ...opts, jsonObject: false });
+    }
     throw new Error(`OpenRouter ${response.status}: ${detail.slice(0, 280)}`);
   }
 
@@ -80,7 +79,50 @@ async function completeJsonViaOpenRouter<T>(opts: {
   if (!text) {
     throw new Error("OpenRouter retornou resposta vazia.");
   }
-  return JSON.parse(extractJsonText(text)) as T;
+  return text;
+}
+
+async function completeAnthropicText(opts: { system: string; user: string; maxTokens?: number }): Promise<string> {
+  const client = getClient();
+  const response = await client.messages.create({
+    model: getAnthropicModel(),
+    max_tokens: opts.maxTokens ?? 4096,
+    temperature: 0,
+    system: opts.system,
+    messages: [{ role: "user", content: opts.user }],
+  });
+
+  const text = response.content
+    .filter((block) => block.type === "text")
+    .map((block) => block.text)
+    .join("\n")
+    .trim();
+
+  if (!text) {
+    throw new Error("Claude retornou resposta vazia.");
+  }
+  return text;
+}
+
+async function generateText(opts: { system: string; user: string; maxTokens?: number }): Promise<string> {
+  const preferOpenRouter = hasOpenRouterKey() && !process.env.ANTHROPIC_API_KEY?.trim();
+  if (preferOpenRouter) {
+    return completeOpenRouterText(opts);
+  }
+  try {
+    return await completeAnthropicText(opts);
+  } catch (error) {
+    if (!hasOpenRouterKey()) throw error;
+    return completeOpenRouterText(opts);
+  }
+}
+
+async function repairJsonText(broken: string): Promise<string> {
+  return generateText({
+    system: "Voce so conserta JSON. Devolva SOMENTE o objeto JSON valido. Nao explique. Nao invente campos novos.",
+    user: `Conserte a sintaxe deste JSON (aspas, virgulas, chaves cortadas). Preserve o conteudo:\n\n${broken.slice(0, 60_000)}`,
+    maxTokens: 8192,
+  });
 }
 
 export async function completeJson<T>(opts: {
@@ -88,45 +130,11 @@ export async function completeJson<T>(opts: {
   user: string;
   maxTokens?: number;
 }): Promise<T> {
-  const preferOpenRouter = hasOpenRouterKey() && !process.env.ANTHROPIC_API_KEY?.trim();
-
-  let lastError: unknown;
-  for (let attempt = 0; attempt < 2; attempt++) {
-    try {
-      if (preferOpenRouter) {
-        return await completeJsonViaOpenRouter<T>(opts);
-      }
-      const client = getClient();
-      const model = getAnthropicModel();
-      const response = await client.messages.create({
-        model,
-        max_tokens: opts.maxTokens ?? 4096,
-        system: opts.system,
-        messages: [{ role: "user", content: opts.user }],
-      });
-
-      const text = response.content
-        .filter((block) => block.type === "text")
-        .map((block) => block.text)
-        .join("\n")
-        .trim();
-
-      if (!text) {
-        throw new Error("Claude retornou resposta vazia.");
-      }
-
-      return JSON.parse(extractJsonText(text)) as T;
-    } catch (error) {
-      lastError = error;
-      if (hasOpenRouterKey() && !preferOpenRouter && attempt === 0) {
-        try {
-          return await completeJsonViaOpenRouter<T>(opts);
-        } catch (fallbackError) {
-          lastError = fallbackError;
-        }
-      }
-    }
+  const text = await generateText(opts);
+  try {
+    return parseLlmJson<T>(text);
+  } catch {
+    const repaired = await repairJsonText(extractJsonText(text));
+    return parseLlmJson<T>(repaired);
   }
-
-  throw lastError instanceof Error ? lastError : new Error(String(lastError));
 }

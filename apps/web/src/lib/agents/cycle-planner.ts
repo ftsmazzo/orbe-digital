@@ -52,7 +52,7 @@ export async function planOrbeCycle(opts: {
   }>({
     system: `Voce e o Planejador ORBE. Obedeça o metodo compilado. Pode contrariar o consultor se a opiniao nao for estrategica.
 NUNCA invente numero. Se faltar DRE, planned fica vazio.
-Responda SOMENTE JSON.
+Responda SOMENTE um objeto JSON valido. Feche todas as chaves. Sem markdown.
 
 ${formatMethodForPrompt()}`,
     user: `Cliente: ${opts.clientName}
@@ -88,7 +88,7 @@ Retorne:
   "challenges": ["onde discordar do consultor, se houver, com motivo estrategico"]
 }
 Exatamente 4 goals, um por perspectiva. Ate 6 globals sem inventar as que faltam.`,
-    maxTokens: 5500,
+    maxTokens: 8192,
   });
 
   const byPerspective = new Map<Perspective, CycleGoal>();

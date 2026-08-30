@@ -37,7 +37,9 @@ Regras obrigatorias:
 - maturidade de 1 a 5 com justificativa implicita nos gaps.
 - Sugira score360 com perfil "consultoria" e notas 1-5 nas 7 dimensoes SO com base na transcricao (use 0 se nao houver evidencia).
 - Se a opiniao do consultor na transcricao nao for estrategica, registre em riscos (nao apague o fato).
-- Responda SOMENTE JSON valido, sem markdown.`;
+- Responda SOMENTE um objeto JSON valido, sem markdown.
+- evidencia com no maximo 12 palavras. Campos sem fato: omita a chave (nao invente).
+- Feche todas as chaves. Se o limite apertar, corte campos vazios — nunca corte o JSON no meio.`;
 
 function asField(raw: unknown): DiagnosticFieldValue | undefined {
   if (!raw || typeof raw !== "object") return undefined;
@@ -150,7 +152,7 @@ Retorne JSON no formato:
   "maturity": 1-5
 }`;
 
-  const raw = await completeJson<ClaudeExtractResponse>({ system: SYSTEM, user, maxTokens: 5000 });
+  const raw = await completeJson<ClaudeExtractResponse>({ system: SYSTEM, user, maxTokens: 8192 });
 
   const payloadRaw = raw.payload ?? {};
   const gaps = stringList(raw.gaps).length ? stringList(raw.gaps) : stringList(payloadRaw.prioridades);

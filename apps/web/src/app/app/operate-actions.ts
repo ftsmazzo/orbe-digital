@@ -227,8 +227,39 @@ async function orchestrateFullCycle(
   clientId: string,
   client: { name: string; sector?: string | null; city?: string | null },
 ) {
-  await setCycleRun(clientId, orgId, { step: "Diagnosticando com o historico" });
-  await diagnoseFromCockpit(orgId, clientId, client.name);
+  const existingDiagnosticRows = await db
+    .select()
+    .from(diagnostics)
+    .where(and(eq(diagnostics.clientId, clientId), eq(diagnostics.organizationId, orgId)))
+    .orderBy(desc(diagnostics.createdAt));
+  const existingDiagnostic = pickBestDiagnostic(existingDiagnosticRows);
+  const existingIsReal =
+    existingDiagnostic && !isThinHeuristicPayload((existingDiagnostic.payload ?? {}) as DiagnosticPayload);
+
+  const [latestSession] = await db
+    .select({ updatedAt: consultingSessions.updatedAt })
+    .from(consultingSessions)
+    .where(and(eq(consultingSessions.clientId, clientId), eq(consultingSessions.organizationId, orgId)))
+    .orderBy(desc(consultingSessions.updatedAt))
+    .limit(1);
+  const [latestDocument] = await db
+    .select({ updatedAt: clientDocuments.updatedAt })
+    .from(clientDocuments)
+    .where(and(eq(clientDocuments.clientId, clientId), eq(clientDocuments.organizationId, orgId)))
+    .orderBy(desc(clientDocuments.updatedAt))
+    .limit(1);
+  const materialAfterDiagnostic = Boolean(
+    existingDiagnostic &&
+      ((latestSession && latestSession.updatedAt > existingDiagnostic.createdAt) ||
+        (latestDocument && latestDocument.updatedAt > existingDiagnostic.createdAt)),
+  );
+
+  if (!existingIsReal || materialAfterDiagnostic) {
+    await setCycleRun(clientId, orgId, { step: "Diagnosticando com o historico" });
+    await diagnoseFromCockpit(orgId, clientId, client.name);
+  } else {
+    await setCycleRun(clientId, orgId, { step: "Reusando diagnostico ja consolidado" });
+  }
 
   const diagnosticRows = await db
     .select()
