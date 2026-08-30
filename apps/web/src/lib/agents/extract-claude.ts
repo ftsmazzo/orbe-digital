@@ -3,6 +3,7 @@ import { SCORE360_DIMENSIONS, SCORE360_PROFILES, computeScore360Total } from "@o
 import { completeJson, hasAnthropicKey } from "@/lib/ai/claude";
 import { formatMethodForPrompt } from "@/lib/agents/tools/method-canon";
 import { emptyMixIfUngrounded, normalizeGut, normalizeIshikawa } from "@/lib/agents/tools/matrizes";
+import { asNumber, asTextList } from "@/lib/text";
 
 export type ExtractedDiagnostic = {
   payload: DiagnosticPayload;
@@ -65,8 +66,7 @@ function normalizeSection(section: unknown): Record<string, DiagnosticFieldValue
 }
 
 function stringList(value: unknown): string[] {
-  if (!Array.isArray(value)) return [];
-  return value.map((item) => String(item).trim()).filter(Boolean);
+  return asTextList(value);
 }
 
 function clampMaturity(value: unknown, fallback: number) {
@@ -82,11 +82,11 @@ function normalizeScore360(raw: unknown): Score360 | undefined {
   const perfil = (SCORE360_PROFILES.includes(perfilRaw as Score360Profile)
     ? perfilRaw
     : "consultoria") as Score360Profile;
-  const dimsRaw = (obj.dimensoes ?? {}) as Record<string, unknown>;
+  const dimsRaw = (obj.dimensoes ?? obj.notas ?? {}) as Record<string, unknown>;
   const dimensoes: Partial<Record<Score360Dimension, number>> = {};
   for (const dim of SCORE360_DIMENSIONS) {
-    const n = Number(dimsRaw[dim]);
-    if (Number.isFinite(n) && n > 0) dimensoes[dim] = Math.max(1, Math.min(5, Math.round(n)));
+    const n = asNumber(dimsRaw[dim]);
+    if (n != null && n > 0) dimensoes[dim] = Math.max(1, Math.min(5, Math.round(n)));
   }
   if (!Object.keys(dimensoes).length) return undefined;
   return {

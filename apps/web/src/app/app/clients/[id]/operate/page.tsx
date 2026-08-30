@@ -161,14 +161,14 @@ export default async function OperatePage({ params }: { params: Promise<{ id: st
         <CycleRunBanner cycleRun={cycleRun} />
         {marketRows[0] ? (
           <p className="mt-3 text-sm text-slate-600">
-            Pesquisa R (Apify) na gestao de planejamento desta empresa. Ultimo insight:{" "}
+            Pesquisa R na gestao de planejamento desta empresa. Ultimo insight:{" "}
             {marketRows[0].summary.slice(0, 160)}
             {marketRows[0].summary.length > 160 ? "…" : ""}
           </p>
         ) : (
           <p className="mt-3 text-sm text-slate-500">
-            Pesquisa de mercado (Apify) roda dentro deste botao — nao saiu do planejamento. Sem token, o ciclo aponta o
-            buraco e segue.
+            Pesquisa de mercado roda neste botao (Apify, Tavily ou Perplexity/Sonar). Sem credito, o ciclo aponta o
+            buraco e nao inventa mercado.
           </p>
         )}
         <ul className="mt-6 grid gap-3">

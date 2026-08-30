@@ -50,10 +50,18 @@ export function Score360Editor({ value, onChange }: Props) {
         <div>
           <h2 className="text-lg font-semibold text-[#012245]">Score 360</h2>
           <p className="text-sm text-slate-500">Notas 1–5 por dimensao, ponderadas pelo perfil.</p>
+          {Object.keys(score.dimensoes).length === 0 ? (
+            <p className="mt-2 max-w-md text-sm text-[#c0392b]">
+              Ainda sem nota. O ciclo nao inventa Score 360 sem evidencia na sessao — preencha 1 a 5
+              aqui ou grave mais material.
+            </p>
+          ) : null}
         </div>
         <div className="text-right">
           <p className="text-xs uppercase tracking-wide text-slate-500">Total</p>
-          <p className="text-3xl font-semibold text-[#2e7271]">{total.toFixed(1)}</p>
+          <p className="text-3xl font-semibold text-[#2e7271]">
+            {Object.keys(score.dimensoes).length === 0 ? "—" : total.toFixed(1)}
+          </p>
         </div>
       </div>
 

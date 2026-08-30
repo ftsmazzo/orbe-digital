@@ -21,7 +21,7 @@ export default async function ClientActionsPage({ params }: { params: Promise<{ 
   return (
     <>
       <PageHeader title={`Acoes - ${client.name}`} description="Quadro de execucao com responsaveis, prazos e status." />
-      <div className="grid gap-6 xl:grid-cols-[380px_1fr]">
+      <div className="grid min-w-0 gap-6">
         <Card>
           <h2 className="text-lg font-semibold text-[#012245]">Nova acao</h2>
           <form action={createActionItem.bind(null, id)} className="mt-4 grid gap-3">
@@ -49,14 +49,14 @@ export default async function ClientActionsPage({ params }: { params: Promise<{ 
             <Button>Criar acao</Button>
           </form>
         </Card>
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <div className="flex min-w-0 gap-4 overflow-x-auto pb-2">
           {ACTION_STATUSES.map((status) => (
-            <Card key={status}>
+            <Card key={status} className="w-[240px] shrink-0">
               <h2 className="font-semibold text-[#012245]">{ACTION_STATUS_LABELS[status]}</h2>
               <div className="mt-4 space-y-3">
                 {actionRows.filter((action) => action.status === status).map((action) => (
                   <div key={action.id} className="rounded-2xl border border-slate-100 p-4">
-                    <strong>{action.title}</strong>
+                    <strong className="break-words">{action.title}</strong>
                     <p className="mt-1 text-sm text-slate-500">{action.ownerName ?? "Sem responsavel"} · prazo {formatDate(action.dueDate)}</p>
                     <form action={updateActionStatus.bind(null, action.id, id)} className="mt-3">
                       <Select name="status" defaultValue={action.status} className="w-full text-sm">

@@ -5,6 +5,7 @@ import type { Confidence, DiagnosticFieldValue, DiagnosticPayload, Score360, Swo
 import { Button, Field, Input, Textarea } from "@/components/ui";
 import { Score360Editor } from "@/components/Score360Editor";
 import { SwotMatrixEditor } from "@/components/SwotMatrixEditor";
+import { asTextList } from "@/lib/text";
 
 type Props = {
   diagnosticId: string;
@@ -172,16 +173,16 @@ export function DiagnosticEditor(props: Props) {
               <Input name="maturity" type="number" min={1} max={5} defaultValue={derivedMaturity ?? ""} />
             </Field>
             <Field label="Gaps (um por linha)">
-              <Textarea name="gaps" rows={4} defaultValue={props.gaps.join("\n")} />
+              <Textarea name="gaps" rows={4} defaultValue={asTextList(props.gaps).join("\n")} />
             </Field>
             <Field label="Prioridades (uma por linha)">
-              <Textarea name="priorities" rows={4} defaultValue={props.priorities.join("\n")} />
+              <Textarea name="priorities" rows={4} defaultValue={asTextList(props.priorities).join("\n")} />
             </Field>
             <Field label="Riscos (um por linha)">
-              <Textarea name="risks" rows={4} defaultValue={props.risks.join("\n")} />
+              <Textarea name="risks" rows={4} defaultValue={asTextList(props.risks).join("\n")} />
             </Field>
             <Field label="Perguntas em aberto">
-              <Textarea name="openQuestions" rows={4} defaultValue={props.openQuestions.join("\n")} />
+              <Textarea name="openQuestions" rows={4} defaultValue={asTextList(props.openQuestions).join("\n")} />
             </Field>
             <Button type="submit">Salvar rascunho</Button>
           </div>
@@ -222,10 +223,10 @@ export function DiagnosticEditor(props: Props) {
           <p className="mt-2 text-sm text-slate-600">
             Score 360: {payload.score360?.total != null ? Number(payload.score360.total).toFixed(1) : "—"}
           </p>
-          <p className="text-sm text-slate-600">Gaps: {props.gaps.length}</p>
-          <p className="text-sm text-slate-600">Prioridades: {props.priorities.length}</p>
-          <p className="text-sm text-slate-600">Riscos: {props.risks.length}</p>
-          <p className="text-sm text-slate-600">Perguntas: {props.openQuestions.length}</p>
+          <p className="text-sm text-slate-600">Gaps: {asTextList(props.gaps).length}</p>
+          <p className="text-sm text-slate-600">Prioridades: {asTextList(props.priorities).length}</p>
+          <p className="text-sm text-slate-600">Riscos: {asTextList(props.risks).length}</p>
+          <p className="text-sm text-slate-600">Perguntas: {asTextList(props.openQuestions).length}</p>
         </div>
       </aside>
     </form>

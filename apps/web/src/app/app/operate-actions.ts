@@ -277,9 +277,11 @@ async function orchestrateFullCycle(
     .where(and(eq(marketInsights.clientId, clientId), eq(marketInsights.organizationId, orgId)))
     .orderBy(desc(marketInsights.createdAt))
     .limit(1);
-  const insightIsApify = Boolean(insight?.summary?.includes("[Apify"));
-  if (!insightIsApify) {
-    await setCycleRun(clientId, orgId, { step: "Pesquisando mercado (Apify)" });
+  const insightIsReal = Boolean(
+    insight?.summary && /\[(Apify|Tavily|Sonar)/i.test(insight.summary),
+  );
+  if (!insightIsReal) {
+    await setCycleRun(clientId, orgId, { step: "Pesquisando mercado" });
     try {
       await researchFromCockpit(orgId, clientId, client.name, client.sector, client.city);
       await setCycleRun(clientId, orgId, { apify: "ok — insight gravado" });
@@ -288,7 +290,7 @@ async function orchestrateFullCycle(
       await setCycleRun(clientId, orgId, { apify: `nao rodou: ${message}` });
     }
   } else {
-    await setCycleRun(clientId, orgId, { apify: "ja havia pesquisa Apify" });
+    await setCycleRun(clientId, orgId, { apify: "ja havia pesquisa web" });
   }
 
   const [insightAfter] = await db
@@ -415,15 +417,18 @@ async function researchFromCockpit(
     knowledge,
   });
   if (research.source === "heuristic") {
-    throw new Error("APIFY_TOKEN ausente ou a coleta falhou. Pesquisa nao foi gravada como heuristica.");
+    throw new Error(
+      "Sem credito Apify e sem busca web (Tavily ou Perplexity/Sonar na OpenRouter). Pesquisa nao foi inventada.",
+    );
   }
+  const tag = research.source === "apify+claude" ? "Apify+LLM" : research.source === "tavily+llm" ? "Tavily+LLM" : "Sonar+LLM";
   await db.insert(marketInsights).values({
     organizationId: orgId,
     clientId,
     scope: research.scope,
     region: research.region,
     sector: research.sector,
-    summary: `[Apify+LLM] ${research.summary}`,
+    summary: `[${tag}] ${research.summary}`,
     payload: research.payload,
   });
 }
@@ -529,7 +534,9 @@ async function persistCyclePlan(orgId: string, clientId: string, cycle: CyclePla
       }
     }
 
-    const extraKpis = planned.kpis.slice(1);
+    const extraKpis = planned.kpis.slice(1).filter((kpi) =>
+      Object.values(kpi.planned ?? {}).some((value) => value != null),
+    );
     for (const kpi of extraKpis) {
       const already = existingIndicators.some(
         (row) => row.goalId === goalId && row.name.toLowerCase() === kpi.name.toLowerCase(),

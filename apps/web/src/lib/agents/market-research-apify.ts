@@ -6,6 +6,7 @@ import {
   type MarketResearchResult,
   type MarketScope,
 } from "@/lib/agents/market-research";
+import { researchMarketFromWeb } from "@/lib/agents/market-research-web";
 
 type ClaudeMarketResponse = {
   summary?: string;
@@ -112,8 +113,10 @@ Retorne:
 
 export async function researchMarketEnriched(
   input: MarketResearchInput & { website?: string | null; knowledge?: string },
-): Promise<MarketResearchResult & { source: "apify+claude" | "heuristic" }> {
+): Promise<MarketResearchResult & { source: "apify+claude" | "tavily+llm" | "sonar+llm" | "heuristic" }> {
   if (!hasApifyToken()) {
+    const web = await researchMarketFromWeb(input).catch(() => null);
+    if (web) return web;
     return { ...researchMarket(input), source: "heuristic" };
   }
 
@@ -165,7 +168,9 @@ export async function researchMarketEnriched(
       source: "apify+claude",
     };
   } catch (error) {
-    console.error("[market-research] Apify falhou, fallback heuristica:", error);
+    console.error("[market-research] Apify falhou, tentando busca web:", error);
+    const web = await researchMarketFromWeb(input).catch(() => null);
+    if (web) return web;
     return { ...researchMarket(input), source: "heuristic" };
   }
 }

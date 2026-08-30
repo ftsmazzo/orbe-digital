@@ -42,13 +42,13 @@ export default async function PlanningPage({ params }: { params: Promise<{ id: s
         title={`Planejamento - ${client.name}`}
         description="Fase R (Resultar): pesquisa de mercado regional/global, metas e indicadores nas 4 perspectivas."
       />
-      <div className="grid gap-6 xl:grid-cols-[380px_1fr]">
+      <div className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,380px)_minmax(0,1fr)]">
         <div className="grid gap-6">
           <Card>
             <h2 className="text-lg font-semibold text-[#012245]">Pesquisa de mercado (R)</h2>
             <p className="mt-1 text-sm text-slate-500">
-              Apify continua aqui: busca regional ou ampla e grava o insight. O ciclo ORBE tambem dispara essa
-              pesquisa se ainda nao houver insight Apify desta empresa.
+              Busca de mercado: Apify se houver credito; senao Tavily ou Perplexity/Sonar (OpenRouter). Sem
+              nenhuma dessas, o ciclo nao inventa mercado.
             </p>
             <MarketResearchForm
               clientId={id}
