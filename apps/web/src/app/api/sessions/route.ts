@@ -4,6 +4,7 @@ import { clients, consultingSessions, db } from "@/lib/db";
 import { mockTranscript } from "@/lib/agents/extract";
 import { requireOrg } from "@/lib/org";
 import { persistFitFromTranscript } from "@/lib/sales/persist-fit";
+import { formatSessionMarkdown } from "@/lib/sessions/format-transcript";
 import { putObject } from "@/lib/storage";
 
 export const runtime = "nodejs";
@@ -69,11 +70,12 @@ export async function POST(request: Request) {
       .returning();
 
     if (pastedTranscript && !hasAudio) {
+      const transcript = formatSessionMarkdown(pastedTranscript);
       await db
         .update(consultingSessions)
         .set({
-          transcriptRaw: pastedTranscript,
-          transcriptSegments: [{ speaker: "ORBE", text: pastedTranscript }],
+          transcriptRaw: transcript,
+          transcriptSegments: [{ speaker: "ORBE", text: transcript }],
           status: "pronto",
           updatedAt: new Date(),
         })
@@ -83,7 +85,7 @@ export async function POST(request: Request) {
         clientId,
         sessionId: session.id,
         sessionKind,
-        transcript: pastedTranscript,
+        transcript,
         clientName: client.name,
       }).catch((error) => console.error("[sessions] fit", error));
     } else if (hasAudio && audio instanceof File) {
@@ -133,7 +135,7 @@ export async function POST(request: Request) {
             );
           }
         } else {
-          const transcript = mockTranscript(client.name);
+          const transcript = formatSessionMarkdown(mockTranscript(client.name));
           await db
             .update(consultingSessions)
             .set({

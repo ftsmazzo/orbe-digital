@@ -46,7 +46,7 @@ export function ClientFitBanner({
       <h2 className="mt-1 text-2xl font-semibold">{tone?.title ?? "Ainda sem leitura de fit"}</h2>
       <p className="mt-2 max-w-3xl text-sm opacity-90">
         {tone?.hint ??
-          "Grave a reuniao estrategica. O sistema le a transcricao pela metodologia de vendas e sugere se e cliente ideal ou problema. Voce decide admitir."}
+          "Grave ou cole a reuniao. O sistema le a memoria das sessoes (todas as conversas juntas) e sugere se e cliente ideal ou problema. Voce decide admitir."}
       </p>
       {reasons.length ? (
         <ul className="mt-3 list-disc space-y-1 pl-5 text-sm">

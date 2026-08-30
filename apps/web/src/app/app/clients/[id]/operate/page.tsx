@@ -236,16 +236,34 @@ export default async function OperatePage({ params }: { params: Promise<{ id: st
           <h2 className="mt-1 text-lg font-semibold text-[#012245]">Subir o que o cliente entregou</h2>
           <p className="mt-1 text-sm text-slate-500">DRE, contrato, organograma. Sem isso o sistema aponta o buraco — nao inventa numero.</p>
           <CockpitDocumentForm clientId={id} />
-          {documentRows.length > 0 ? (
+          {documentRows.some((doc) => doc.kind === "memoria") ? (
+            <p className="mt-3 text-sm">
+              <Link href={`/app/clients/${id}/memory`} className="font-semibold text-[#2e7271]">
+                Memoria das sessoes
+              </Link>
+              {" · documento vivo que o fit e o ciclo leem"}
+            </p>
+          ) : (
+            <p className="mt-3 text-sm text-slate-400">
+              A memoria aparece depois da primeira transcricao.{" "}
+              <Link href={`/app/clients/${id}/memory`} className="font-semibold text-[#2e7271]">
+                Abrir memoria
+              </Link>
+            </p>
+          )}
+          {documentRows.filter((doc) => doc.kind !== "memoria").length > 0 ? (
             <ul className="mt-3 space-y-2 text-sm text-slate-600">
-              {documentRows.slice(0, 6).map((doc) => (
-                <li key={doc.id}>
-                  {doc.title} · {DOCUMENT_KIND_LABELS[(doc.kind as DocumentKind) ?? "outro"] ?? doc.kind}
-                </li>
-              ))}
+              {documentRows
+                .filter((doc) => doc.kind !== "memoria")
+                .slice(0, 6)
+                .map((doc) => (
+                  <li key={doc.id}>
+                    {doc.title} · {DOCUMENT_KIND_LABELS[(doc.kind as DocumentKind) ?? "outro"] ?? doc.kind}
+                  </li>
+                ))}
             </ul>
           ) : (
-            <p className="mt-3 text-sm text-slate-400">Inbox vazia.</p>
+            <p className="mt-3 text-sm text-slate-400">Inbox de documentos do cliente vazia.</p>
           )}
         </Card>
         <Card>

@@ -2,6 +2,7 @@ import { and, eq } from "drizzle-orm";
 import type { SalesQualification } from "@orbe/shared";
 import { clients, db } from "@/lib/db";
 import { suggestFitFromTranscript } from "@/lib/sales/suggest-fit";
+import { ensureSessionMemory } from "@/lib/sessions/session-memory";
 
 export async function persistFitFromTranscript(opts: {
   orgId: string;
@@ -12,13 +13,23 @@ export async function persistFitFromTranscript(opts: {
   clientName: string;
   force?: boolean;
 }) {
-  const transcript = opts.transcript.trim();
-  if (!transcript) return { skipped: "sem transcricao" as const };
-
   const kind = opts.sessionKind ?? "";
   if (!opts.force && kind && kind !== "estrategica") {
+    await ensureSessionMemory({
+      orgId: opts.orgId,
+      clientId: opts.clientId,
+      clientName: opts.clientName,
+    });
     return { skipped: "nao_estrategica" as const };
   }
+
+  const memory = await ensureSessionMemory({
+    orgId: opts.orgId,
+    clientId: opts.clientId,
+    clientName: opts.clientName,
+  });
+  const text = memory?.extractedText?.trim() || opts.transcript.trim();
+  if (!text) return { skipped: "sem transcricao" as const };
 
   const [client] = await db
     .select({ salesQualification: clients.salesQualification })
@@ -28,7 +39,7 @@ export async function persistFitFromTranscript(opts: {
   if (!client) return { skipped: "cliente" as const };
 
   const current = (client.salesQualification ?? {}) as SalesQualification;
-  const suggestion = await suggestFitFromTranscript(transcript, opts.clientName);
+  const suggestion = await suggestFitFromTranscript(text, opts.clientName);
 
   const next: SalesQualification = {
     ...current,

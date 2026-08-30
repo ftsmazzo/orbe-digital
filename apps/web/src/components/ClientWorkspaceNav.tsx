@@ -2,6 +2,7 @@ import Link from "next/link";
 
 const TABS = [
   { suffix: "operate", label: "Operar" },
+  { suffix: "memory", label: "Memoria" },
   { suffix: "", label: "Cadastro" },
   { suffix: "planning", label: "Planejamento" },
   { suffix: "actions", label: "Acoes" },

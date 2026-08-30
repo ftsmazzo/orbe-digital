@@ -29,6 +29,7 @@ import { extractDocumentText } from "@/lib/documents/ocr";
 import { retrieveKnowledge } from "@/lib/knowledge/retrieve";
 import { getCurrentOrg } from "@/lib/org";
 import { persistFitFromTranscript } from "@/lib/sales/persist-fit";
+import { ensureSessionMemory, SESSION_MEMORY_KIND } from "@/lib/sessions/session-memory";
 import { putObject } from "@/lib/storage";
 
 const MAX_UPLOAD_BYTES = 18 * 1024 * 1024;
@@ -36,6 +37,7 @@ const MAX_UPLOAD_BYTES = 18 * 1024 * 1024;
 function operatePaths(clientId: string) {
   revalidatePath(`/app/clients/${clientId}/operate`);
   revalidatePath(`/app/clients/${clientId}`);
+  revalidatePath(`/app/clients/${clientId}/memory`);
 }
 
 type CycleRun = {
@@ -365,11 +367,18 @@ async function documentContext(orgId: string, clientId: string) {
     .select()
     .from(clientDocuments)
     .where(and(eq(clientDocuments.clientId, clientId), eq(clientDocuments.organizationId, orgId)))
-    .orderBy(desc(clientDocuments.createdAt))
-    .limit(6);
-  return docs
+    .orderBy(desc(clientDocuments.updatedAt))
+    .limit(8);
+  const ranked = [
+    ...docs.filter((doc) => doc.kind === SESSION_MEMORY_KIND),
+    ...docs.filter((doc) => doc.kind !== SESSION_MEMORY_KIND),
+  ];
+  return ranked
     .filter((doc) => doc.extractedText)
-    .map((doc) => `[Documento ${doc.kind}: ${doc.title}]\n${doc.extractedText!.slice(0, 2500)}`)
+    .map((doc) => {
+      const limit = doc.kind === SESSION_MEMORY_KIND ? 40_000 : 2500;
+      return `[Documento ${doc.kind}: ${doc.title}]\n${doc.extractedText!.slice(0, limit)}`;
+    })
     .join("\n\n");
 }
 
@@ -380,11 +389,8 @@ async function diagnoseFromCockpit(orgId: string, clientId: string, clientName: 
     .where(and(eq(consultingSessions.clientId, clientId), eq(consultingSessions.organizationId, orgId)))
     .orderBy(desc(consultingSessions.createdAt));
 
-  const transcripts = sessions
-    .filter((session) => session.transcriptRaw?.trim())
-    .map((session) => `### ${session.title} (${session.status})\n${session.transcriptRaw!.trim()}`);
-  const docs = await documentContext(orgId, clientId);
-  const transcript = [...transcripts, docs].filter(Boolean).join("\n\n");
+  await ensureSessionMemory({ orgId, clientId, clientName });
+  const transcript = await documentContext(orgId, clientId);
   if (!transcript.trim()) {
     throw new Error("Nao ha transcricao pronta nem documento nesta empresa.");
   }

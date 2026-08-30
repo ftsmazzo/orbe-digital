@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { clients, consultingSessions, db } from "@/lib/db";
 import { persistFitFromTranscript } from "@/lib/sales/persist-fit";
+import { formatSessionMarkdown } from "@/lib/sessions/format-transcript";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -14,7 +15,7 @@ export async function POST(request: Request) {
 
   const body = await request.json();
   const sessionId = String(body.sessionId ?? "");
-  const transcript = String(body.transcript ?? body.transcriptRaw ?? "");
+  const transcript = formatSessionMarkdown(String(body.transcript ?? body.transcriptRaw ?? ""));
   const [session] = await db.select().from(consultingSessions).where(eq(consultingSessions.id, sessionId)).limit(1);
   if (!session) return NextResponse.json({ error: "Sessao nao encontrada" }, { status: 404 });
 

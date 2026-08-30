@@ -318,6 +318,7 @@ export const DOCUMENT_KINDS = [
   "organograma",
   "anotacao",
   "proposta",
+  "memoria",
   "outro",
 ] as const;
 export type DocumentKind = (typeof DOCUMENT_KINDS)[number];
@@ -328,6 +329,7 @@ export const DOCUMENT_KIND_LABELS: Record<DocumentKind, string> = {
   organograma: "Organograma / equipe",
   anotacao: "Anotacao",
   proposta: "Proposta",
+  memoria: "Memoria das sessoes",
   outro: "Outro",
 };
 

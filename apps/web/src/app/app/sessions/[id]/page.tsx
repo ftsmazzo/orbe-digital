@@ -2,8 +2,10 @@ import { notFound } from "next/navigation";
 import { and, eq } from "drizzle-orm";
 import type { SalesQualification } from "@orbe/shared";
 import { ClientFitBanner } from "@/components/ClientFitBanner";
+import { MemoryMarkdown } from "@/components/MemoryMarkdown";
 import { SessionStatusPoller } from "@/components/SessionStatusPoller";
 import { Button, Card, Field, LinkButton, PageHeader, Textarea } from "@/components/ui";
+import { formatSessionMarkdown } from "@/lib/sessions/format-transcript";
 import { clients, consultingSessions, db } from "@/lib/db";
 import { formatDateTime, SESSION_STATUS_LABEL } from "@/lib/format";
 import { getCurrentOrg } from "@/lib/org";
@@ -61,12 +63,18 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
       <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
         <div className="grid gap-6">
           <Card>
-            <h2 className="text-lg font-semibold text-[#012245]">Transcricao</h2>
-            <div className="mt-4 min-h-40 whitespace-pre-wrap rounded-2xl bg-slate-50 p-5 text-sm leading-7 text-slate-700">
-              {session.transcriptRaw ??
-                (session.status === "processando"
-                  ? "Aguardando Whisper… a pagina atualiza sozinha."
-                  : "A transcricao ainda nao foi recebida.")}
+            <h2 className="text-lg font-semibold text-[#012245]">Esta conversa</h2>
+            <p className="mt-1 text-sm text-slate-500">
+              Entra como capitulo na memoria da empresa. O fit le o documento inteiro, nao so esta sessao.
+            </p>
+            <div className="mt-4 min-h-40 rounded-2xl bg-slate-50 p-5">
+              {hasTranscript ? (
+                <MemoryMarkdown markdown={formatSessionMarkdown(session.transcriptRaw ?? "")} />
+              ) : session.status === "processando" ? (
+                <p className="text-sm text-slate-500">Aguardando Whisper… a pagina atualiza sozinha.</p>
+              ) : (
+                <p className="text-sm text-slate-500">A transcricao ainda nao foi recebida.</p>
+              )}
             </div>
           </Card>
           <Card>
@@ -74,7 +82,7 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
               {hasTranscript ? "Corrigir transcricao" : "Colar transcricao"}
             </h2>
             <p className="mt-1 text-sm text-slate-500">
-              Salva o texto e, se for reuniao estrategica, le o fit. Diagnostico e ciclo saem so do cockpit.
+              Ao salvar, o texto e formatado e incrementa a memoria. Diagnostico e ciclo saem so do cockpit.
             </p>
             <form action={applySessionTranscript.bind(null, session.id)} className="mt-4 grid gap-3">
               <Field label="Texto da conversa">
@@ -98,7 +106,8 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
               diagnostico solto aqui.
             </p>
             {client ? (
-              <div className="mt-4">
+              <div className="mt-4 grid gap-2">
+                <LinkButton href={`/app/clients/${client.id}/memory`}>Abrir memoria completa</LinkButton>
                 <LinkButton href={`/app/clients/${client.id}/operate`}>Abrir cockpit desta empresa</LinkButton>
               </div>
             ) : null}

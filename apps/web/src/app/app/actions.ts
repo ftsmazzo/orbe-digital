@@ -26,6 +26,7 @@ import {
 } from "@/lib/db";
 import { mockTranscript } from "@/lib/agents/extract";
 import { persistFitFromTranscript } from "@/lib/sales/persist-fit";
+import { formatSessionMarkdown } from "@/lib/sessions/format-transcript";
 import { researchMarketEnriched, type MarketScope } from "@/lib/agents/market-research-apify";
 import { generateProposalHtml } from "@/lib/agents/proposal";
 import { generateReportHtml } from "@/lib/agents/report";
@@ -137,11 +138,12 @@ async function persistTranscriptAndFit(opts: {
   transcript: string;
   force?: boolean;
 }) {
+  const transcript = formatSessionMarkdown(opts.transcript);
   await db
     .update(consultingSessions)
     .set({
-      transcriptRaw: opts.transcript,
-      transcriptSegments: [{ speaker: "ORBE", text: opts.transcript }],
+      transcriptRaw: transcript,
+      transcriptSegments: [{ speaker: "ORBE", text: transcript }],
       status: "pronto",
       errorMessage: null,
       updatedAt: new Date(),
@@ -153,7 +155,7 @@ async function persistTranscriptAndFit(opts: {
     clientId: opts.clientId,
     sessionId: opts.sessionId,
     sessionKind: opts.sessionKind,
-    transcript: opts.transcript,
+    transcript,
     clientName: opts.clientName,
     force: opts.force,
   }).catch((error) => console.error("[session] fit", error));
@@ -281,6 +283,7 @@ export async function applySessionTranscript(sessionId: string, formData: FormDa
   revalidatePath(`/app/sessions/${sessionId}`);
   revalidatePath(`/app/clients/${session.clientId}`);
   revalidatePath(`/app/clients/${session.clientId}/operate`);
+  revalidatePath(`/app/clients/${session.clientId}/memory`);
 }
 
 export async function saveDiagnostic(diagnosticId: string, formData: FormData) {

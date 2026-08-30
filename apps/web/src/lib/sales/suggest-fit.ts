@@ -31,7 +31,7 @@ ${rubric}
 
 Regra de ouro: nunca aceite cliente que voce nao respeita intelectualmente.
 
-Transcricao da reuniao estrategica:
+Memoria das sessoes (documento vivo, nao uma gravacao isolada):
 """
 ${transcript.slice(0, 40_000)}
 """
