@@ -33,6 +33,8 @@ import {
   proposals,
 } from "@/lib/db";
 
+export const maxDuration = 180;
+
 const PHASE_TONE = {
   ok: "border-[#2e7271]/30 bg-[#2e7271]/5 text-[#012245]",
   parcial: "border-[#c8a04c]/40 bg-[#c8a04c]/10 text-[#012245]",

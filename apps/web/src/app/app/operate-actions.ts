@@ -27,8 +27,6 @@ import { retrieveKnowledge } from "@/lib/knowledge/retrieve";
 import { getCurrentOrg } from "@/lib/org";
 import { putObject } from "@/lib/storage";
 
-export const maxDuration = 180;
-
 const MAX_UPLOAD_BYTES = 18 * 1024 * 1024;
 
 function operatePaths(clientId: string) {
