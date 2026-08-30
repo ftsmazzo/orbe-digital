@@ -14,11 +14,11 @@ export function hasAnthropicKey() {
 }
 
 export function getAnthropicModel() {
-  return process.env.ANTHROPIC_MODEL?.trim() || "claude-sonnet-4-5";
+  return process.env.ANTHROPIC_MODEL?.trim() || "claude-haiku-4-5";
 }
 
 function getOpenRouterModel() {
-  return process.env.OPENROUTER_MODEL?.trim() || "anthropic/claude-sonnet-4.5";
+  return process.env.OPENROUTER_MODEL?.trim() || "anthropic/claude-haiku-4.5";
 }
 
 function getClient() {
