@@ -47,7 +47,8 @@ export default async function PlanningPage({ params }: { params: Promise<{ id: s
           <Card>
             <h2 className="text-lg font-semibold text-[#012245]">Pesquisa de mercado (R)</h2>
             <p className="mt-1 text-sm text-slate-500">
-              Regional para empresa local; global/amplo quando o alcance for maior. Gera rascunho para personalizar o comercial.
+              Apify continua aqui: busca regional ou ampla e grava o insight. O ciclo ORBE tambem dispara essa
+              pesquisa se ainda nao houver insight Apify desta empresa.
             </p>
             <MarketResearchForm
               clientId={id}

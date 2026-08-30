@@ -36,6 +36,9 @@ export default async function OperateHubPage() {
               </p>
               <h2 className="mt-2 text-lg font-semibold text-[#012245]">{client.tradeName ?? client.name}</h2>
               <p className="mt-1 text-sm text-slate-500">{client.sector ?? "Setor nao informado"}</p>
+              {client.cycleRun?.status === "running" ? (
+                <p className="mt-2 text-sm text-[#2e7271]">Ciclo em andamento: {client.cycleRun.step ?? "processando"}</p>
+              ) : null}
               <div className="mt-5 flex flex-wrap gap-2">
                 <LinkButton href={`/app/clients/${client.id}/operate`}>Operar</LinkButton>
                 <Link href={`/app/clients/${client.id}`} className="rounded-xl px-4 py-2 text-sm font-semibold text-[#2e7271]">

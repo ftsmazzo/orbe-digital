@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { runOperateAction } from "@/app/app/operate-actions";
 import { Button } from "@/components/ui";
 
@@ -9,12 +10,15 @@ export function OperateActionButton({
   action,
   label,
   variant = "primary",
+  locked = false,
 }: {
   clientId: string;
   action: string;
   label: string;
   variant?: "primary" | "secondary";
+  locked?: boolean;
 }) {
+  const router = useRouter();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
 
@@ -26,6 +30,7 @@ export function OperateActionButton({
       formData.set("action", action);
       const result = await runOperateAction(clientId, formData);
       if (result?.error) setError(result.error);
+      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Falha ao executar.");
     } finally {
@@ -35,8 +40,8 @@ export function OperateActionButton({
 
   return (
     <div className="grid gap-2">
-      <Button type="button" variant={variant} onClick={onClick} disabled={pending}>
-        {pending ? "Processando..." : label}
+      <Button type="button" variant={variant} onClick={onClick} disabled={pending || locked}>
+        {locked ? "Ciclo em andamento..." : pending ? "Processando..." : label}
       </Button>
       {error ? <p className="max-w-md text-sm text-red-700">{error}</p> : null}
     </div>

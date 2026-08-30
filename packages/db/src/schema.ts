@@ -145,6 +145,17 @@ export const clients = pgTable("clients", {
     .$type<Record<string, unknown>>()
     .default({})
     .notNull(),
+  cycleRun: jsonb("cycle_run")
+    .$type<{
+      status: "idle" | "running" | "done" | "error";
+      step?: string;
+      error?: string;
+      apify?: string;
+      startedAt?: string;
+      finishedAt?: string;
+    }>()
+    .default({ status: "idle" })
+    .notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });

@@ -9,6 +9,7 @@ import {
   type Perspective,
 } from "@orbe/shared";
 import { CockpitDocumentForm, ConsultantDirectionForm } from "@/components/CockpitDocumentForm";
+import { CycleRunBanner } from "@/components/CycleRunBanner";
 import { OperateActionButton } from "@/components/OperateActionButton";
 import { SessionCreateForm } from "@/components/SessionCreateForm";
 import { Card, LinkButton, PageHeader } from "@/components/ui";
@@ -104,6 +105,8 @@ export default async function OperatePage({ params }: { params: Promise<{ id: st
     proposals: proposalRows.length,
   });
 
+  const cycleRun = client.cycleRun ?? { status: "idle" as const };
+  const cycleRunning = cycleRun.status === "running";
   const canRunCycle = brief.recommendedAction === "ciclo" || brief.recommendedAction === "acompanhar";
   const canValidate = Boolean(bestDiagnostic && !thin && !bestDiagnostic.validated);
 
@@ -140,7 +143,14 @@ export default async function OperatePage({ params }: { params: Promise<{ id: st
               <OperateActionButton
                 clientId={id}
                 action="ciclo"
-                label={brief.recommendedAction === "acompanhar" ? "Reprocessar ciclo" : "Processar ciclo ORBE"}
+                locked={cycleRunning}
+                label={
+                  cycleRunning
+                    ? "Ciclo em andamento..."
+                    : brief.recommendedAction === "acompanhar"
+                      ? "Processar de novo"
+                      : "Processar ciclo ORBE"
+                }
               />
             ) : null}
             {canValidate ? (
@@ -148,6 +158,19 @@ export default async function OperatePage({ params }: { params: Promise<{ id: st
             ) : null}
           </div>
         </div>
+        <CycleRunBanner cycleRun={cycleRun} />
+        {marketRows[0] ? (
+          <p className="mt-3 text-sm text-slate-600">
+            Pesquisa R (Apify) na gestao de planejamento desta empresa. Ultimo insight:{" "}
+            {marketRows[0].summary.slice(0, 160)}
+            {marketRows[0].summary.length > 160 ? "…" : ""}
+          </p>
+        ) : (
+          <p className="mt-3 text-sm text-slate-500">
+            Pesquisa de mercado (Apify) roda dentro deste botao — nao saiu do planejamento. Sem token, o ciclo aponta o
+            buraco e segue.
+          </p>
+        )}
         <ul className="mt-6 grid gap-3">
           {brief.notes.map((note, index) => (
             <li key={`${note.phase}-${index}`} className={`rounded-2xl border px-4 py-3 ${PHASE_TONE[note.status]}`}>

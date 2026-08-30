@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { and, desc, eq } from "drizzle-orm";
 import { type DiagnosticPayload, type Perspective } from "@orbe/shared";
 import {
@@ -36,6 +37,15 @@ function operatePaths(clientId: string) {
   revalidatePath(`/app/clients/${clientId}`);
 }
 
+type CycleRun = {
+  status: "idle" | "running" | "done" | "error";
+  step?: string;
+  error?: string;
+  apify?: string;
+  startedAt?: string;
+  finishedAt?: string;
+};
+
 async function loadClient(clientId: string, orgId: string) {
   const [client] = await db
     .select()
@@ -43,6 +53,29 @@ async function loadClient(clientId: string, orgId: string) {
     .where(and(eq(clients.id, clientId), eq(clients.organizationId, orgId)))
     .limit(1);
   return client;
+}
+
+function isStaleRun(run?: CycleRun | null) {
+  if (run?.status !== "running" || !run.startedAt) return false;
+  return Date.now() - new Date(run.startedAt).getTime() > 4 * 60 * 1000;
+}
+
+async function setCycleRun(clientId: string, orgId: string, patch: Partial<CycleRun>) {
+  const client = await loadClient(clientId, orgId);
+  const current = (client?.cycleRun ?? { status: "idle" }) as CycleRun;
+  const next: CycleRun = { ...current, ...patch };
+  if (patch.status === "running" || patch.status === "done") delete next.error;
+  if (patch.status === "running") {
+    delete next.finishedAt;
+    if (patch.apify === undefined) delete next.apify;
+  }
+  await db
+    .update(clients)
+    .set({
+      cycleRun: next,
+      updatedAt: new Date(),
+    })
+    .where(and(eq(clients.id, clientId), eq(clients.organizationId, orgId)));
 }
 
 export async function uploadClientDocument(clientId: string, formData: FormData) {
@@ -100,13 +133,50 @@ export async function runOperateAction(clientId: string, formData: FormData): Pr
   const client = await loadClient(clientId, orgId);
   if (!client) return { error: "Cliente nao encontrado." };
 
+  const currentRun = (client.cycleRun ?? { status: "idle" }) as CycleRun;
+  if (action === "ciclo" && currentRun.status === "running" && !isStaleRun(currentRun)) {
+    return { error: "O ciclo desta empresa ja esta em andamento. Aguarde ou volte nesta tela." };
+  }
+
   try {
-    if (action === "ciclo" || action === "diagnosticar") {
-      if (action === "ciclo") {
-        await orchestrateFullCycle(orgId, clientId, client);
-      } else {
-        await diagnoseFromCockpit(orgId, clientId, client.name);
-      }
+    if (action === "ciclo") {
+      await setCycleRun(clientId, orgId, {
+        status: "running",
+        step: "Lendo sessoes e documentos",
+        error: undefined,
+        apify: undefined,
+        startedAt: new Date().toISOString(),
+        finishedAt: undefined,
+      });
+      after(async () => {
+        try {
+          await orchestrateFullCycle(orgId, clientId, client);
+          await setCycleRun(clientId, orgId, {
+            status: "done",
+            step: "Concluido",
+            finishedAt: new Date().toISOString(),
+          });
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          await setCycleRun(clientId, orgId, {
+            status: "error",
+            error: message,
+            finishedAt: new Date().toISOString(),
+          });
+        }
+        operatePaths(clientId);
+        revalidatePath("/app/diagnostics");
+        revalidatePath(`/app/clients/${clientId}/planning`);
+        revalidatePath(`/app/clients/${clientId}/actions`);
+        revalidatePath(`/app/clients/${clientId}/dashboard`);
+        revalidatePath(`/app/clients/${clientId}/proposals`);
+      });
+      operatePaths(clientId);
+      return {};
+    }
+
+    if (action === "diagnosticar") {
+      await diagnoseFromCockpit(orgId, clientId, client.name);
     } else if (action === "validar") {
       const rows = await db
         .select()
@@ -132,7 +202,15 @@ export async function runOperateAction(clientId: string, formData: FormData): Pr
       await proposeFromCockpit(orgId, clientId, client.name);
     }
   } catch (error) {
-    return { error: error instanceof Error ? error.message : String(error) };
+    const message = error instanceof Error ? error.message : String(error);
+    if (action === "ciclo") {
+      await setCycleRun(clientId, orgId, {
+        status: "error",
+        error: message,
+        finishedAt: new Date().toISOString(),
+      });
+    }
+    return { error: message };
   }
 
   operatePaths(clientId);
@@ -149,6 +227,7 @@ async function orchestrateFullCycle(
   clientId: string,
   client: { name: string; sector?: string | null; city?: string | null },
 ) {
+  await setCycleRun(clientId, orgId, { step: "Diagnosticando com o historico" });
   await diagnoseFromCockpit(orgId, clientId, client.name);
 
   const diagnosticRows = await db
@@ -167,12 +246,18 @@ async function orchestrateFullCycle(
     .where(and(eq(marketInsights.clientId, clientId), eq(marketInsights.organizationId, orgId)))
     .orderBy(desc(marketInsights.createdAt))
     .limit(1);
-  if (!insight) {
+  const insightIsApify = Boolean(insight?.summary?.includes("[Apify"));
+  if (!insightIsApify) {
+    await setCycleRun(clientId, orgId, { step: "Pesquisando mercado (Apify)" });
     try {
       await researchFromCockpit(orgId, clientId, client.name, client.sector, client.city);
+      await setCycleRun(clientId, orgId, { apify: "ok — insight gravado" });
     } catch (error) {
-      console.error("[orchestrator] pesquisa R:", error);
+      const message = error instanceof Error ? error.message : String(error);
+      await setCycleRun(clientId, orgId, { apify: `nao rodou: ${message}` });
     }
+  } else {
+    await setCycleRun(clientId, orgId, { apify: "ja havia pesquisa Apify" });
   }
 
   const [insightAfter] = await db
@@ -182,6 +267,7 @@ async function orchestrateFullCycle(
     .orderBy(desc(marketInsights.createdAt))
     .limit(1);
 
+  await setCycleRun(clientId, orgId, { step: "Montando metas globais, BSC e 5W2H" });
   const docs = await documentContext(orgId, clientId);
   const dre = readDreBrief({
     payload: (diagnostic.payload ?? {}) as DiagnosticPayload,
@@ -207,6 +293,7 @@ async function orchestrateFullCycle(
   });
 
   await persistCyclePlan(orgId, clientId, cycle);
+  await setCycleRun(clientId, orgId, { step: "Gerando proposta" });
   await proposeFromCockpit(orgId, clientId, client.name);
 }
 
