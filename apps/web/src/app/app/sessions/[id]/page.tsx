@@ -1,12 +1,13 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { and, eq } from "drizzle-orm";
+import type { SalesQualification } from "@orbe/shared";
+import { ClientFitBanner } from "@/components/ClientFitBanner";
 import { SessionStatusPoller } from "@/components/SessionStatusPoller";
-import { Button, Card, Field, PageHeader, Textarea } from "@/components/ui";
-import { clients, consultingSessions, db, diagnostics } from "@/lib/db";
+import { Button, Card, Field, LinkButton, PageHeader, Textarea } from "@/components/ui";
+import { clients, consultingSessions, db } from "@/lib/db";
 import { formatDateTime, SESSION_STATUS_LABEL } from "@/lib/format";
 import { getCurrentOrg } from "@/lib/org";
-import { applySessionTranscript, reextractSessionDiagnostic } from "../../actions";
+import { applySessionTranscript } from "../../actions";
 
 export default async function SessionDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -18,21 +19,26 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
     .limit(1);
   if (!session) notFound();
 
-  const [[client], diagnosticRows] = await Promise.all([
-    db.select().from(clients).where(eq(clients.id, session.clientId)).limit(1),
-    db
-      .select()
-      .from(diagnostics)
-      .where(and(eq(diagnostics.sessionId, id), eq(diagnostics.organizationId, orgId))),
-  ]);
+  const [client] = await db
+    .select()
+    .from(clients)
+    .where(and(eq(clients.id, session.clientId), eq(clients.organizationId, orgId)))
+    .limit(1);
 
   const statusLabel = SESSION_STATUS_LABEL[session.status] ?? session.status;
+  const hasTranscript = Boolean(session.transcriptRaw?.trim());
+  const isEstrategica = session.kind === "estrategica";
 
   return (
     <>
       <PageHeader
         title={session.title}
         description={`${client?.name ?? "Cliente"} · ${statusLabel} · ${formatDateTime(session.createdAt)}`}
+        action={
+          client ? (
+            <LinkButton href={`/app/clients/${client.id}/operate`}>Voltar a operar</LinkButton>
+          ) : undefined
+        }
       />
       <div className="mb-4">
         <SessionStatusPoller status={session.status} />
@@ -42,6 +48,16 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
           {session.errorMessage}
         </p>
       ) : null}
+
+      {client ? (
+        <ClientFitBanner
+          clientId={client.id}
+          sessionId={session.id}
+          qualification={(client.salesQualification ?? {}) as SalesQualification}
+          hasTranscript={hasTranscript}
+        />
+      ) : null}
+
       <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
         <div className="grid gap-6">
           <Card>
@@ -55,8 +71,11 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
           </Card>
           <Card>
             <h2 className="text-lg font-semibold text-[#012245]">
-              {session.transcriptRaw ? "Atualizar / reextrair" : "Colar transcricao"}
+              {hasTranscript ? "Corrigir transcricao" : "Colar transcricao"}
             </h2>
+            <p className="mt-1 text-sm text-slate-500">
+              Salva o texto e, se for reuniao estrategica, le o fit. Diagnostico e ciclo saem so do cockpit.
+            </p>
             <form action={applySessionTranscript.bind(null, session.id)} className="mt-4 grid gap-3">
               <Field label="Texto da conversa">
                 <Textarea
@@ -67,11 +86,23 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
                   required
                 />
               </Field>
-              <Button>{session.transcriptRaw ? "Reprocessar diagnostico" : "Salvar e extrair diagnostico"}</Button>
+              <Button>{isEstrategica ? "Salvar e ler o fit" : "Salvar transcricao"}</Button>
             </form>
           </Card>
         </div>
         <div className="grid gap-6">
+          <Card>
+            <h2 className="font-semibold text-[#012245]">Proximo passo</h2>
+            <p className="mt-2 text-sm text-slate-600">
+              A sessao guarda a conversa. O cockpit processa o ciclo ORBE com o historico inteiro — nao ha
+              diagnostico solto aqui.
+            </p>
+            {client ? (
+              <div className="mt-4">
+                <LinkButton href={`/app/clients/${client.id}/operate`}>Abrir cockpit desta empresa</LinkButton>
+              </div>
+            ) : null}
+          </Card>
           <Card>
             <h2 className="font-semibold text-[#012245]">Consentimento</h2>
             <p className="mt-2 text-sm text-slate-600">
@@ -81,30 +112,6 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
           <Card>
             <h2 className="font-semibold text-[#012245]">Audio</h2>
             <p className="mt-2 break-all text-sm text-slate-600">{session.audioUrl ?? "Nenhum arquivo enviado."}</p>
-          </Card>
-          <Card>
-            <h2 className="text-lg font-semibold text-[#012245]">Diagnostico gerado</h2>
-            {session.transcriptRaw ? (
-              <form action={reextractSessionDiagnostic.bind(null, session.id)} className="mt-3">
-                <Button type="submit">Reextrair com Claude</Button>
-              </form>
-            ) : null}
-            {diagnosticRows.length ? (
-              diagnosticRows.map((diagnostic) => (
-                <Link
-                  key={diagnostic.id}
-                  href={`/app/diagnostics/${diagnostic.id}`}
-                  className="mt-3 block rounded-2xl border border-slate-100 p-3 text-sm text-[#2e7271]"
-                >
-                  Abrir diagnostico v{diagnostic.version}
-                  {diagnostic.validated ? " (validado)" : " (rascunho)"}
-                </Link>
-              ))
-            ) : (
-              <p className="mt-2 text-sm text-slate-500">
-                Apos a transcricao, o diagnostico Claude aparece aqui automaticamente.
-              </p>
-            )}
           </Card>
         </div>
       </div>

@@ -24,10 +24,12 @@ const VERDICT: Record<
 
 export function ClientFitBanner({
   clientId,
+  sessionId,
   qualification,
   hasTranscript,
 }: {
   clientId: string;
+  sessionId?: string;
   qualification?: SalesQualification | null;
   hasTranscript: boolean;
 }) {
@@ -64,6 +66,7 @@ export function ClientFitBanner({
         <div className="mt-4 max-w-xs">
           <OperateActionButton
             clientId={clientId}
+            sessionId={sessionId}
             action="sugerir_fit"
             variant="secondary"
             label={suggested ? "Ler a reuniao de novo" : "Ler a reuniao e sugerir fit"}

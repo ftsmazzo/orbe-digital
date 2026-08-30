@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
-import { clients, consultingSessions, db, diagnostics } from "@/lib/db";
-import { extractDiagnosticFromTranscript } from "@/lib/agents/extract";
-import { retrieveKnowledge } from "@/lib/knowledge/retrieve";
+import { clients, consultingSessions, db } from "@/lib/db";
 import { persistFitFromTranscript } from "@/lib/sales/persist-fit";
 
 export const runtime = "nodejs";
@@ -20,11 +18,6 @@ export async function POST(request: Request) {
   const [session] = await db.select().from(consultingSessions).where(eq(consultingSessions.id, sessionId)).limit(1);
   if (!session) return NextResponse.json({ error: "Sessao nao encontrada" }, { status: 404 });
 
-  const knowledge = await retrieveKnowledge({
-    orgId: session.organizationId,
-    query: transcript.slice(0, 2000),
-  });
-  const extracted = await extractDiagnosticFromTranscript(transcript, body.clientName ?? "Cliente", knowledge);
   await db
     .update(consultingSessions)
     .set({
@@ -36,18 +29,6 @@ export async function POST(request: Request) {
     })
     .where(eq(consultingSessions.id, sessionId));
 
-  await db.insert(diagnostics).values({
-    organizationId: session.organizationId,
-    clientId: session.clientId,
-    sessionId,
-    payload: extracted.payload,
-    maturity: extracted.maturity,
-    gaps: extracted.gaps,
-    priorities: extracted.priorities,
-    risks: extracted.risks,
-    openQuestions: extracted.openQuestions,
-  });
-
   const [client] = await db.select().from(clients).where(eq(clients.id, session.clientId)).limit(1);
   await persistFitFromTranscript({
     orgId: session.organizationId,
@@ -58,5 +39,5 @@ export async function POST(request: Request) {
     clientName: String(body.clientName ?? client?.name ?? "Cliente"),
   }).catch((error) => console.error("[n8n/session] fit", error));
 
-  return NextResponse.json({ ok: true, source: extracted.source });
+  return NextResponse.json({ ok: true });
 }

@@ -172,7 +172,7 @@ export function SessionCreateForm({
       </label>
 
       <p className="text-xs text-slate-500">
-        Com audio: dispara STT. Com texto colado: extrai diagnostico na hora.
+        Com audio: transcreve. Com texto colado: grava a conversa e le o fit se for estrategica. O ciclo sai do cockpit.
         {recordingFile ? ` Gravacao anexada: ${recordingFile.name} (${Math.round(recordingFile.size / 1024)} KB).` : ""}
       </p>
 

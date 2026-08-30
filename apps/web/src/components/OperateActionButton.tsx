@@ -7,6 +7,7 @@ import { Button } from "@/components/ui";
 
 export function OperateActionButton({
   clientId,
+  sessionId,
   action,
   label,
   variant = "primary",
@@ -14,6 +15,7 @@ export function OperateActionButton({
   pendingLabel,
 }: {
   clientId: string;
+  sessionId?: string;
   action: string;
   label: string;
   variant?: "primary" | "secondary";
@@ -30,6 +32,7 @@ export function OperateActionButton({
     try {
       const formData = new FormData();
       formData.set("action", action);
+      if (sessionId) formData.set("sessionId", sessionId);
       const result = await runOperateAction(clientId, formData);
       if (result?.error) setError(result.error);
       router.refresh();

@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { and, desc, eq } from "drizzle-orm";
-import { clients, consultingSessions, db, diagnostics } from "@/lib/db";
-import { extractDiagnosticFromTranscript, mockTranscript } from "@/lib/agents/extract";
-import { retrieveKnowledge } from "@/lib/knowledge/retrieve";
+import { clients, consultingSessions, db } from "@/lib/db";
+import { mockTranscript } from "@/lib/agents/extract";
 import { requireOrg } from "@/lib/org";
 import { persistFitFromTranscript } from "@/lib/sales/persist-fit";
 import { putObject } from "@/lib/storage";
@@ -70,8 +69,6 @@ export async function POST(request: Request) {
       .returning();
 
     if (pastedTranscript && !hasAudio) {
-      const knowledge = await retrieveKnowledge({ orgId, query: pastedTranscript.slice(0, 2000) });
-      const extracted = await extractDiagnosticFromTranscript(pastedTranscript, client.name, knowledge);
       await db
         .update(consultingSessions)
         .set({
@@ -81,17 +78,6 @@ export async function POST(request: Request) {
           updatedAt: new Date(),
         })
         .where(eq(consultingSessions.id, session.id));
-      await db.insert(diagnostics).values({
-        organizationId: orgId,
-        clientId,
-        sessionId: session.id,
-        payload: extracted.payload,
-        maturity: extracted.maturity,
-        gaps: extracted.gaps,
-        priorities: extracted.priorities,
-        risks: extracted.risks,
-        openQuestions: extracted.openQuestions,
-      });
       await persistFitFromTranscript({
         orgId,
         clientId,
@@ -148,8 +134,6 @@ export async function POST(request: Request) {
           }
         } else {
           const transcript = mockTranscript(client.name);
-          const knowledge = await retrieveKnowledge({ orgId, query: transcript });
-          const extracted = await extractDiagnosticFromTranscript(transcript, client.name, knowledge);
           await db
             .update(consultingSessions)
             .set({
@@ -159,17 +143,6 @@ export async function POST(request: Request) {
               updatedAt: new Date(),
             })
             .where(eq(consultingSessions.id, session.id));
-          await db.insert(diagnostics).values({
-            organizationId: orgId,
-            clientId,
-            sessionId: session.id,
-            payload: extracted.payload,
-            maturity: extracted.maturity,
-            gaps: extracted.gaps,
-            priorities: extracted.priorities,
-            risks: extracted.risks,
-            openQuestions: extracted.openQuestions,
-          });
           await persistFitFromTranscript({
             orgId,
             clientId,

@@ -177,13 +177,17 @@ export async function runOperateAction(clientId: string, formData: FormData): Pr
     }
 
     if (action === "sugerir_fit") {
+      const requestedId = String(formData.get("sessionId") ?? "").trim();
       const sessions = await db
         .select()
         .from(consultingSessions)
         .where(and(eq(consultingSessions.clientId, clientId), eq(consultingSessions.organizationId, orgId)))
         .orderBy(desc(consultingSessions.createdAt));
       const withText = sessions.filter((row) => row.transcriptRaw?.trim());
-      const session = withText.find((row) => row.kind === "estrategica") ?? withText[0];
+      const session =
+        (requestedId ? withText.find((row) => row.id === requestedId) : undefined) ??
+        withText.find((row) => row.kind === "estrategica") ??
+        withText[0];
       if (!session?.transcriptRaw?.trim()) {
         return { error: "Nao ha transcricao para ler o fit. Grave a reuniao estrategica." };
       }
@@ -197,6 +201,7 @@ export async function runOperateAction(clientId: string, formData: FormData): Pr
         force: true,
       });
       operatePaths(clientId);
+      revalidatePath(`/app/sessions/${session.id}`);
       return {};
     }
 

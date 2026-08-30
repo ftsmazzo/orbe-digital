@@ -142,7 +142,7 @@ export function buildProcessBrief(input: {
       phase: "O",
       status: "falta",
       title: "Diagnostico atual e heuristica rasa",
-      detail: "Nao validar isso. Reextrair com OpenRouter/Claude usando o historico completo.",
+      detail: "Nao validar isso. Processe o ciclo no cockpit com o historico completo.",
     });
   } else if (!input.diagnosticValidated) {
     notes.push({

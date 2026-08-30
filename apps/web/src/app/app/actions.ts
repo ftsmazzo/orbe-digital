@@ -24,7 +24,8 @@ import {
   reports,
   salesScoreEvents,
 } from "@/lib/db";
-import { extractDiagnosticFromTranscript, mockTranscript } from "@/lib/agents/extract";
+import { mockTranscript } from "@/lib/agents/extract";
+import { persistFitFromTranscript } from "@/lib/sales/persist-fit";
 import { researchMarketEnriched, type MarketScope } from "@/lib/agents/market-research-apify";
 import { generateProposalHtml } from "@/lib/agents/proposal";
 import { generateReportHtml } from "@/lib/agents/report";
@@ -127,18 +128,15 @@ export async function updateClientStage(clientId: string, formData: FormData) {
   revalidatePath("/app/clients");
 }
 
-async function persistTranscriptAndDiagnostic(opts: {
+async function persistTranscriptAndFit(opts: {
   orgId: string;
   clientId: string;
   sessionId: string;
+  sessionKind?: string | null;
   clientName: string;
   transcript: string;
+  force?: boolean;
 }) {
-  const knowledge = await retrieveKnowledge({
-    orgId: opts.orgId,
-    query: opts.transcript.slice(0, 2000),
-  });
-  const extracted = await extractDiagnosticFromTranscript(opts.transcript, opts.clientName, knowledge);
   await db
     .update(consultingSessions)
     .set({
@@ -150,17 +148,15 @@ async function persistTranscriptAndDiagnostic(opts: {
     })
     .where(eq(consultingSessions.id, opts.sessionId));
 
-  await db.insert(diagnostics).values({
-    organizationId: opts.orgId,
+  await persistFitFromTranscript({
+    orgId: opts.orgId,
     clientId: opts.clientId,
     sessionId: opts.sessionId,
-    payload: extracted.payload,
-    maturity: extracted.maturity,
-    gaps: extracted.gaps,
-    priorities: extracted.priorities,
-    risks: extracted.risks,
-    openQuestions: extracted.openQuestions,
-  });
+    sessionKind: opts.sessionKind,
+    transcript: opts.transcript,
+    clientName: opts.clientName,
+    force: opts.force,
+  }).catch((error) => console.error("[session] fit", error));
 }
 
 export async function createSession(formData: FormData) {
@@ -193,10 +189,11 @@ export async function createSession(formData: FormData) {
     .returning();
 
   if (pastedTranscript) {
-    await persistTranscriptAndDiagnostic({
+    await persistTranscriptAndFit({
       orgId,
       clientId,
       sessionId: session.id,
+      sessionKind: session.kind,
       clientName: client.name,
       transcript: pastedTranscript,
     });
@@ -231,10 +228,11 @@ export async function createSession(formData: FormData) {
         }),
       });
     } else {
-      await persistTranscriptAndDiagnostic({
+      await persistTranscriptAndFit({
         orgId,
         clientId,
         sessionId: session.id,
+        sessionKind: session.kind,
         clientName: client.name,
         transcript: mockTranscript(client.name),
       });
@@ -270,84 +268,19 @@ export async function applySessionTranscript(sessionId: string, formData: FormDa
     .limit(1);
   if (!client) return;
 
-  await persistTranscriptAndDiagnostic({
+  await persistTranscriptAndFit({
     orgId,
     clientId: session.clientId,
     sessionId,
+    sessionKind: session.kind,
     clientName: client.name,
     transcript,
+    force: true,
   });
 
   revalidatePath(`/app/sessions/${sessionId}`);
-  revalidatePath("/app/diagnostics");
   revalidatePath(`/app/clients/${session.clientId}`);
-}
-
-export async function reextractSessionDiagnostic(sessionId: string) {
-  const { orgId } = await getCurrentOrg();
-  const [session] = await db
-    .select()
-    .from(consultingSessions)
-    .where(and(eq(consultingSessions.id, sessionId), eq(consultingSessions.organizationId, orgId)))
-    .limit(1);
-  if (!session?.transcriptRaw) return;
-
-  const [client] = await db
-    .select()
-    .from(clients)
-    .where(and(eq(clients.id, session.clientId), eq(clients.organizationId, orgId)))
-    .limit(1);
-  if (!client) return;
-
-  const knowledge = await retrieveKnowledge({
-    orgId,
-    query: session.transcriptRaw.slice(0, 2000),
-  });
-  const extracted = await extractDiagnosticFromTranscript(session.transcriptRaw, client.name, knowledge);
-
-  const [existing] = await db
-    .select()
-    .from(diagnostics)
-    .where(and(eq(diagnostics.sessionId, sessionId), eq(diagnostics.organizationId, orgId)))
-    .orderBy(desc(diagnostics.createdAt))
-    .limit(1);
-
-  if (existing && !existing.validated) {
-    await db
-      .update(diagnostics)
-      .set({
-        payload: extracted.payload,
-        maturity: extracted.maturity,
-        gaps: extracted.gaps,
-        priorities: extracted.priorities,
-        risks: extracted.risks,
-        openQuestions: extracted.openQuestions,
-        version: (existing.version ?? 1) + 1,
-        updatedAt: new Date(),
-      })
-      .where(eq(diagnostics.id, existing.id));
-    revalidatePath(`/app/diagnostics/${existing.id}`);
-  } else {
-    const [created] = await db
-      .insert(diagnostics)
-      .values({
-        organizationId: orgId,
-        clientId: session.clientId,
-        sessionId,
-        payload: extracted.payload,
-        maturity: extracted.maturity,
-        gaps: extracted.gaps,
-        priorities: extracted.priorities,
-        risks: extracted.risks,
-        openQuestions: extracted.openQuestions,
-      })
-      .returning();
-    if (created) revalidatePath(`/app/diagnostics/${created.id}`);
-  }
-
-  revalidatePath(`/app/sessions/${sessionId}`);
-  revalidatePath("/app/diagnostics");
-  revalidatePath(`/app/clients/${session.clientId}`);
+  revalidatePath(`/app/clients/${session.clientId}/operate`);
 }
 
 export async function saveDiagnostic(diagnosticId: string, formData: FormData) {
