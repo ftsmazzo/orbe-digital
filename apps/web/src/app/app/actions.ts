@@ -9,6 +9,7 @@ import {
   clientArtifacts,
   clientPeople,
   clientContracts,
+  clientDocuments,
   clientFinancials,
   clients,
   consultingSessions,
@@ -30,6 +31,10 @@ import { formatSessionMarkdown } from "@/lib/sessions/format-transcript";
 import { researchMarketEnriched, type MarketScope } from "@/lib/agents/market-research-apify";
 import { generateProposalHtml } from "@/lib/agents/proposal";
 import { generateReportHtml } from "@/lib/agents/report";
+import { completeJson, hasAnthropicKey } from "@/lib/ai/claude";
+import { pickBestDiagnostic } from "@/lib/agents/process-status";
+import { readDreBrief } from "@/lib/agents/tools/leitor-dre";
+import { replaceQuando, scheduleActionWindow } from "@/lib/actions/schedule";
 import { dueDateFromBusinessDays } from "@/lib/finance/business-days";
 import { computePayrollCost } from "@/lib/finance/payroll-cost";
 import { computeValuation, type ValuationInput } from "@/lib/finance/valuation";
@@ -490,6 +495,172 @@ export async function updateActionStatus(actionId: string, clientId: string, for
     .set({ status, updatedAt: new Date() })
     .where(and(eq(actionItems.id, actionId), eq(actionItems.organizationId, orgId)));
   revalidatePath(`/app/clients/${clientId}/actions`);
+}
+
+export async function updateActionSchedule(actionId: string, clientId: string, formData: FormData) {
+  const { orgId } = await getCurrentOrg();
+  const startDate = parseDate(text(formData, "startDate"));
+  let dueDate = parseDate(text(formData, "dueDate"));
+  const businessDays = numberValue(formData, "businessDays");
+  if (startDate && businessDays && !dueDate) {
+    const [org] = await db.select().from(organizations).where(eq(organizations.id, orgId)).limit(1);
+    const settings = mergeOrgSettings(org?.settings);
+    dueDate = parseDate(
+      dueDateFromBusinessDays(
+        startDate.toISOString().slice(0, 10),
+        businessDays,
+        startDate.getFullYear(),
+        settings.localHolidays,
+      ),
+    );
+  }
+  const [current] = await db
+    .select()
+    .from(actionItems)
+    .where(and(eq(actionItems.id, actionId), eq(actionItems.organizationId, orgId)))
+    .limit(1);
+  const window =
+    startDate && dueDate && businessDays
+      ? {
+          businessDays,
+          startDate: startDate.toISOString().slice(0, 10),
+          dueDate: dueDate.toISOString().slice(0, 10),
+        }
+      : null;
+  await db
+    .update(actionItems)
+    .set({
+      startDate,
+      dueDate,
+      businessDays,
+      how: window ? replaceQuando(current?.how, window) : current?.how,
+      updatedAt: new Date(),
+    })
+    .where(and(eq(actionItems.id, actionId), eq(actionItems.organizationId, orgId)));
+  revalidatePath(`/app/clients/${clientId}/actions`);
+}
+
+export async function suggestActionDates(clientId: string) {
+  const { orgId } = await getCurrentOrg();
+  const [org] = await db.select().from(organizations).where(eq(organizations.id, orgId)).limit(1);
+  const holidays = mergeOrgSettings(org?.settings).localHolidays ?? [];
+  const rows = await db
+    .select()
+    .from(actionItems)
+    .where(and(eq(actionItems.clientId, clientId), eq(actionItems.organizationId, orgId)))
+    .orderBy(desc(actionItems.createdAt));
+  let index = 0;
+  for (const row of rows) {
+    if (row.dueDate && row.businessDays) continue;
+    const window = scheduleActionWindow({
+      perspective: row.perspective,
+      title: row.title,
+      how: row.how,
+      hintedDays: row.businessDays,
+      index,
+      extraHolidays: holidays,
+    });
+    index += 1;
+    await db
+      .update(actionItems)
+      .set({
+        startDate: parseDate(window.startDate),
+        dueDate: parseDate(window.dueDate),
+        businessDays: window.businessDays,
+        how: replaceQuando(row.how, window),
+        updatedAt: new Date(),
+      })
+      .where(eq(actionItems.id, row.id));
+  }
+  revalidatePath(`/app/clients/${clientId}/actions`);
+  revalidatePath(`/app/clients/${clientId}/dashboard`);
+}
+
+export async function updateIndicatorResult(clientId: string, indicatorId: string, formData: FormData) {
+  const { orgId } = await getCurrentOrg();
+  await db
+    .update(indicators)
+    .set({
+      planned: monthlyJson(formData, "planned"),
+      actual: monthlyJson(formData, "actual"),
+      updatedAt: new Date(),
+    })
+    .where(and(eq(indicators.id, indicatorId), eq(indicators.organizationId, orgId)));
+  revalidatePath(`/app/clients/${clientId}/planning`);
+  revalidatePath(`/app/clients/${clientId}/dashboard`);
+}
+
+export async function suggestKpiPlanned(clientId: string, indicatorId: string): Promise<{ error?: string }> {
+  const { orgId } = await getCurrentOrg();
+  const [indicator] = await db
+    .select()
+    .from(indicators)
+    .where(and(eq(indicators.id, indicatorId), eq(indicators.organizationId, orgId)))
+    .limit(1);
+  if (!indicator) return { error: "Indicador nao encontrado." };
+
+  const [diagnosticRows, docs] = await Promise.all([
+    db
+      .select()
+      .from(diagnostics)
+      .where(and(eq(diagnostics.clientId, clientId), eq(diagnostics.organizationId, orgId)))
+      .orderBy(desc(diagnostics.createdAt)),
+    db
+      .select({ extractedText: clientDocuments.extractedText, kind: clientDocuments.kind, title: clientDocuments.title })
+      .from(clientDocuments)
+      .where(and(eq(clientDocuments.clientId, clientId), eq(clientDocuments.organizationId, orgId))),
+  ]);
+  const diagnostic = pickBestDiagnostic(diagnosticRows);
+  const documentText = docs
+    .filter((doc) => doc.extractedText)
+    .map((doc) => `[${doc.kind}: ${doc.title}]\n${doc.extractedText!.slice(0, 2500)}`)
+    .join("\n\n");
+  const dre = readDreBrief({
+    payload: (diagnostic?.payload ?? {}) as DiagnosticPayload,
+    documentText,
+  });
+  if (!dre.allowPlannedNumbers) {
+    return { error: "Sem DRE nem numero na sessao. Nao invento planejado." };
+  }
+  if (!hasAnthropicKey()) {
+    return { error: "Sem OpenRouter/Claude nao sugiro numero." };
+  }
+
+  const raw = await completeJson<{ planned?: Record<string, number | null>; note?: string }>({
+    system: `Voce sugere meta mensal planejada so com evidencia. Nao invente. Meses sem base ficam null. JSON somente.`,
+    user: `KPI: ${indicator.name}
+Unidade: ${indicator.unit}
+Direcao: ${indicator.direction}
+Ano: ${indicator.year}
+Planejado atual: ${JSON.stringify(indicator.planned ?? {})}
+
+${dre.notes.join("\n")}
+
+Trecho de evidencia:
+${documentText.slice(0, 6000)}
+${JSON.stringify(diagnostic?.payload ?? {}).slice(0, 4000)}
+
+Retorne { "planned": {"01": null, ..., "12": null}, "note": "origem da sugestao" }`,
+    maxTokens: 800,
+  });
+
+  const current = (indicator.planned ?? {}) as Record<string, number | null>;
+  const next: Record<string, number | null> = { ...current };
+  for (const month of Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, "0"))) {
+    if (current[month] != null) continue;
+    const value = raw.planned?.[month];
+    if (typeof value === "number" && Number.isFinite(value)) next[month] = value;
+  }
+  const filled = Object.values(next).some((value) => value != null);
+  if (!filled) return { error: raw.note || "A evidencia nao sustentou meta mensal." };
+
+  await db
+    .update(indicators)
+    .set({ planned: next, updatedAt: new Date() })
+    .where(eq(indicators.id, indicator.id));
+  revalidatePath(`/app/clients/${clientId}/planning`);
+  revalidatePath(`/app/clients/${clientId}/dashboard`);
+  return {};
 }
 
 export async function generateReport(clientId: string) {

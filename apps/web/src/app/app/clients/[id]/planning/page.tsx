@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 import { and, desc, eq } from "drizzle-orm";
-import { PERSPECTIVE_LABELS, PERSPECTIVES } from "@orbe/shared";
+import { PERSPECTIVE_LABELS_DANIEL, PERSPECTIVES } from "@orbe/shared";
 import { ClientWorkspaceNav } from "@/components/ClientWorkspaceNav";
+import { KpiResultTrack } from "@/components/KpiResultTrack";
 import { MarketResearchForm } from "@/components/MarketResearchForm";
 import { Button, Card, CardTitle, EmptyNote, Field, Input, PageGrid, PageHeader, Select, Textarea } from "@/components/ui";
 import { clients, db, goals, indicators, marketInsights } from "@/lib/db";
@@ -41,7 +42,7 @@ export default async function PlanningPage({ params }: { params: Promise<{ id: s
     <>
       <PageHeader
         title={`Planejamento · ${client.tradeName ?? client.name}`}
-        description="Fase R: pesquisa de mercado, metas e um KPI por perspectiva. Sem DRE o KPI fica sem meta numerica."
+        description="Aqui o Daniel informa o resultado: planejado (ORBE pode sugerir) versus realizado. Sem DRE o planejado fica vazio."
       />
       <ClientWorkspaceNav clientId={id} current="planning" />
 
@@ -108,22 +109,41 @@ export default async function PlanningPage({ params }: { params: Promise<{ id: s
             )}
           </Card>
           <Card>
-            <CardTitle kicker="BSC" title="Indicadores" hint="Porcentagem so existe com planejado e realizado" />
+            <CardTitle
+              kicker="Resultado"
+              title="Planejado x realizado"
+              hint="Informe o realizado do mes. O ORBE so sugere planejado com DRE ou numero na sessao."
+            />
             {indicatorRows.length === 0 ? (
-              <EmptyNote>Sem KPI ainda. O ciclo cria um por perspectiva, sem inventar numero.</EmptyNote>
+              <EmptyNote>Sem KPI ainda. Processe o ciclo — depois este quadro vira o pulso da empresa.</EmptyNote>
             ) : (
-              <div className="grid gap-3">
-                {indicatorRows.map((indicator) => (
-                  <div key={indicator.id} className="rounded-2xl border border-slate-100 p-4">
-                    <div className="flex flex-wrap justify-between gap-2">
-                      <strong className="break-words">{indicator.name}</strong>
-                      <span className="text-sm font-semibold text-[#2e7271]">{PERSPECTIVE_LABELS[indicator.perspective]}</span>
-                    </div>
-                    <p className="mt-1 text-sm text-slate-500">
-                      {indicator.direction} · {indicator.unit} · {indicator.year}
-                    </p>
-                  </div>
-                ))}
+              <div className="grid gap-5">
+                {PERSPECTIVES.map((perspective) => {
+                  const items = indicatorRows.filter((row) => row.perspective === perspective);
+                  if (!items.length) return null;
+                  return (
+                    <section key={perspective} className="grid gap-4">
+                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#2e7271]">
+                        {PERSPECTIVE_LABELS_DANIEL[perspective]}
+                      </p>
+                      {items.map((indicator) => (
+                        <KpiResultTrack
+                          key={`${indicator.id}-${JSON.stringify(indicator.planned)}`}
+                          clientId={id}
+                          indicator={{
+                            id: indicator.id,
+                            name: indicator.name,
+                            unit: indicator.unit,
+                            direction: indicator.direction,
+                            year: indicator.year,
+                            planned: indicator.planned,
+                            actual: indicator.actual,
+                          }}
+                        />
+                      ))}
+                    </section>
+                  );
+                })}
               </div>
             )}
           </Card>
@@ -167,7 +187,7 @@ export default async function PlanningPage({ params }: { params: Promise<{ id: s
                   <Select name="perspective" required>
                     {PERSPECTIVES.map((perspective) => (
                       <option key={perspective} value={perspective}>
-                        {PERSPECTIVE_LABELS[perspective]}
+                        {PERSPECTIVE_LABELS_DANIEL[perspective]}
                       </option>
                     ))}
                   </Select>

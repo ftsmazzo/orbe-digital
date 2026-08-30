@@ -22,7 +22,7 @@ import {
   missingFichaFields,
   pickBestDiagnostic,
 } from "@/lib/agents/process-status";
-import { formatDateTime } from "@/lib/format";
+import { formatDate, formatDateTime } from "@/lib/format";
 import { getCurrentOrg } from "@/lib/org";
 import {
   actionItems,
@@ -343,6 +343,8 @@ export default async function OperatePage({ params }: { params: Promise<{ id: st
                         <span className="mt-0.5 block text-slate-500">
                           {action.ownerName ?? "Dono a definir"}
                           {action.sector ? ` · ${action.sector}` : ""}
+                          {action.businessDays ? ` · ${action.businessDays} dias uteis` : ""}
+                          {action.dueDate ? ` · ${formatDate(action.startDate)} → ${formatDate(action.dueDate)}` : ""}
                           {` · ${action.status}`}
                         </span>
                       </li>

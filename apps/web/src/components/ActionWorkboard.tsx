@@ -6,16 +6,19 @@ import {
   type ActionStatus,
   type Perspective,
 } from "@orbe/shared";
-import { EmptyNote, Select } from "@/components/ui";
+import { Button, EmptyNote, Input, Select } from "@/components/ui";
+import { toDateInput } from "@/lib/actions/schedule";
 import { formatDate } from "@/lib/format";
-import { updateActionStatus } from "@/app/app/actions";
+import { suggestActionDates, updateActionSchedule, updateActionStatus } from "@/app/app/actions";
 
 type ActionRow = {
   id: string;
   title: string;
   how?: string | null;
   ownerName?: string | null;
+  startDate?: Date | string | null;
   dueDate?: Date | string | null;
+  businessDays?: number | null;
   status: ActionStatus;
   perspective?: string | null;
   sector?: string | null;
@@ -30,6 +33,20 @@ const LANES: { id: string; title: string; hint: string; statuses: ActionStatus[]
 function perspectiveLabel(value?: string | null) {
   if (!value) return "";
   return PERSPECTIVE_LABELS_DANIEL[value as Perspective] ?? value;
+}
+
+function Prazo({ action }: { action: ActionRow }) {
+  if (!action.dueDate && !action.businessDays) {
+    return <span className="text-slate-400">sem prazo</span>;
+  }
+  return (
+    <span>
+      {action.businessDays ? `${action.businessDays} du` : "prazo"}
+      <span className="mt-0.5 block text-xs text-slate-500">
+        {formatDate(action.startDate)} → {formatDate(action.dueDate)}
+      </span>
+    </span>
+  );
 }
 
 function StatusMove({ actionId, clientId, status }: { actionId: string; clientId: string; status: ActionStatus }) {
@@ -60,7 +77,7 @@ export function ActionWorkboard({
 }) {
   return (
     <div className="min-w-0">
-      <div className="mb-4 flex flex-wrap gap-2">
+      <div className="mb-4 flex flex-wrap items-center gap-2">
         <Link
           href={`/app/clients/${clientId}/actions`}
           className={`rounded-full px-3 py-1.5 text-sm font-semibold ${
@@ -77,18 +94,23 @@ export function ActionWorkboard({
         >
           Quadro
         </Link>
+        <form action={suggestActionDates.bind(null, clientId)}>
+          <Button type="submit" variant="secondary">
+            Sugerir prazos
+          </Button>
+        </form>
       </div>
 
       {vista === "lista" ? (
         <div className="overflow-x-auto rounded-3xl border border-[#012245]/10 bg-white">
-          <table className="w-full min-w-[760px] table-fixed text-left text-sm">
+          <table className="w-full min-w-[880px] table-fixed text-left text-sm">
             <thead className="bg-[#f7f4ee] text-xs uppercase tracking-wide text-slate-500">
               <tr>
-                <th className="w-[38%] px-4 py-3 font-semibold">Acao</th>
-                <th className="w-[14%] px-4 py-3 font-semibold">Perspectiva</th>
-                <th className="w-[14%] px-4 py-3 font-semibold">Quem</th>
-                <th className="w-[12%] px-4 py-3 font-semibold">Prazo</th>
-                <th className="w-[22%] px-4 py-3 font-semibold">Status</th>
+                <th className="w-[34%] px-4 py-3 font-semibold">Acao</th>
+                <th className="w-[12%] px-4 py-3 font-semibold">Perspectiva</th>
+                <th className="w-[12%] px-4 py-3 font-semibold">Quem</th>
+                <th className="w-[16%] px-4 py-3 font-semibold">Prazo</th>
+                <th className="w-[26%] px-4 py-3 font-semibold">Status</th>
               </tr>
             </thead>
             <tbody>
@@ -107,7 +129,20 @@ export function ActionWorkboard({
                     </td>
                     <td className="px-4 py-3 text-slate-600">{perspectiveLabel(action.perspective) || "—"}</td>
                     <td className="px-4 py-3 text-slate-600">{action.ownerName ?? "—"}</td>
-                    <td className="px-4 py-3 text-slate-600">{formatDate(action.dueDate)}</td>
+                    <td className="px-4 py-3 text-slate-600">
+                      <Prazo action={action} />
+                      <details className="mt-2">
+                        <summary className="cursor-pointer text-xs font-semibold text-[#2e7271]">Ajustar</summary>
+                        <form action={updateActionSchedule.bind(null, action.id, clientId)} className="mt-2 grid gap-2">
+                          <Input name="startDate" type="date" defaultValue={toDateInput(action.startDate)} />
+                          <Input name="businessDays" type="number" min={3} max={45} defaultValue={action.businessDays ?? 10} />
+                          <Input name="dueDate" type="date" defaultValue={toDateInput(action.dueDate)} />
+                          <button className="text-left text-xs font-semibold text-[#2e7271]" type="submit">
+                            Salvar prazo
+                          </button>
+                        </form>
+                      </details>
+                    </td>
                     <td className="px-4 py-3">
                       <StatusMove actionId={action.id} clientId={clientId} status={action.status} />
                     </td>
@@ -140,7 +175,8 @@ export function ActionWorkboard({
                       <p className="mt-1 truncate text-xs text-slate-500">
                         {action.ownerName ?? "Sem responsavel"}
                         {perspectiveLabel(action.perspective) ? ` · ${perspectiveLabel(action.perspective)}` : ""}
-                        {` · prazo ${formatDate(action.dueDate)}`}
+                        {action.businessDays ? ` · ${action.businessDays} du` : ""}
+                        {` · ${formatDate(action.startDate)} → ${formatDate(action.dueDate)}`}
                       </p>
                       <div className="mt-3">
                         <StatusMove actionId={action.id} clientId={clientId} status={action.status} />

@@ -44,7 +44,7 @@ export async function planOrbeCycle(opts: {
       title?: string;
       notes?: string;
       kpis?: { name?: string; unit?: string; direction?: string; planned?: Record<string, number | null>; missing?: string }[];
-      actions?: { title?: string; how?: string; ownerName?: string; sector?: string }[];
+      actions?: { title?: string; how?: string; ownerName?: string; sector?: string; businessDays?: number }[];
     }[];
     missing?: string[];
     openQuestions?: string[];
@@ -80,14 +80,15 @@ Retorne:
       "title": "meta da perspectiva que colabora com as globais",
       "notes": "hipotese se–entao de causa-efeito",
       "kpis": [{ "name": "", "unit": "percentual|numero|moeda", "direction": "aumentar|diminuir", "planned": {"01": null}, "missing": "o que falta para numerar" }],
-      "actions": [{ "title": "", "how": "5W2H resumido", "ownerName": "papel dito na sessao ou A definir", "sector": "area" }]
+      "actions": [{ "title": "", "how": "5W2H resumido", "ownerName": "papel dito na sessao ou A definir", "sector": "area", "businessDays": 10 }]
     }
   ],
   "missing": ["o que falta obter"],
   "openQuestions": [],
   "challenges": ["onde discordar do consultor, se houver, com motivo estrategico"]
 }
-Exatamente 4 goals, um por perspectiva. Ate 6 globals sem inventar as que faltam.`,
+Exatamente 4 goals, um por perspectiva. Ate 6 globals sem inventar as que faltam.
+Em cada acao, businessDays e esforco em dias uteis (5, 10, 15 ou 20). Nao invente data absoluta — o sistema calcula inicio e prazo.`,
     maxTokens: 8192,
   });
 
@@ -111,6 +112,7 @@ Exatamente 4 goals, um por perspectiva. Ate 6 globals sem inventar as que faltam
         how: String(action.how ?? "Detalhar com o cliente."),
         ownerName: String(action.ownerName ?? "A definir"),
         sector: String(action.sector ?? perspective),
+        businessDays: Number(action.businessDays) || undefined,
       })),
     });
   }

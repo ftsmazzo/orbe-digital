@@ -1,6 +1,7 @@
 import { PERSPECTIVES, type Perspective } from "@orbe/shared";
 import type { CycleAction, CycleGoal, CyclePlan } from "@/lib/agents/cycle-types";
 import type { DreBrief } from "@/lib/agents/tools/leitor-dre";
+import { replaceQuando, scheduleActionWindow } from "@/lib/actions/schedule";
 
 export const GLOBAL_NOTE_PREFIX = "[global]";
 
@@ -41,7 +42,7 @@ function format5w2h(action: CycleAction, fallbackOwner: string): CycleAction {
     `O que: ${action.title}`,
     `Por que: ${how || "Fechar lacuna da meta desta perspectiva."}`,
     `Quem: ${owner || "A definir — perguntar na proxima sessao."}`,
-    `Quando: a definir com o consultor (nao inventar prazo).`,
+    `Quando: prazo em dias uteis a calcular pelo ORBE.`,
     `Onde: ${action.sector || "area da perspectiva"}`,
     `Como: ${how || "Detalhar na reuniao de implantacao."}`,
     `Quanto: sem evidencia — nao inventar.`,
@@ -136,11 +137,36 @@ export function enforceMapaBsc(plan: CyclePlan, dre: DreBrief): CyclePlan {
     openQuestions.push("Quais sao as metas globais desta empresa (ate 6)?");
   }
 
-  return {
+  return stampActionDates({
     globals,
     goals: PERSPECTIVES.map((perspective) => byPerspective.get(perspective)!),
     missing: [...new Set(missing)],
     openQuestions: [...new Set(openQuestions)],
     challenges: plan.challenges ?? [],
+  });
+}
+
+function stampActionDates(plan: CyclePlan): CyclePlan {
+  let index = 0;
+  return {
+    ...plan,
+    goals: plan.goals.map((goal) => ({
+      ...goal,
+      actions: goal.actions.map((action) => {
+        const window = scheduleActionWindow({
+          perspective: goal.perspective,
+          title: action.title,
+          how: action.how,
+          hintedDays: action.businessDays,
+          index,
+        });
+        index += 1;
+        return {
+          ...action,
+          ...window,
+          how: replaceQuando(action.how, window),
+        };
+      }),
+    })),
   };
 }

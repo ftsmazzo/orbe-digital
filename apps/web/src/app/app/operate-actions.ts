@@ -602,6 +602,9 @@ async function persistCyclePlan(orgId: string, clientId: string, cycle: CyclePla
           how: action.how,
           ownerName: action.ownerName,
           sector: action.sector,
+          startDate: action.startDate ? new Date(`${action.startDate}T12:00:00`) : undefined,
+          dueDate: action.dueDate ? new Date(`${action.dueDate}T12:00:00`) : undefined,
+          businessDays: action.businessDays,
           status: "nao_iniciado",
         });
       }

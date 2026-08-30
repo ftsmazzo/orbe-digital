@@ -30,7 +30,7 @@ export default async function ClientActionsPage({
     <>
       <PageHeader
         title={`Acoes · ${client.tradeName ?? client.name}`}
-        description="Lista para operar no dia a dia. Quadro em 3 faixas se quiser ver o fluxo. O ciclo cria as acoes; voce move o status."
+        description="O ciclo sugere inicio, dias uteis e prazo. Voce ajusta e move o status."
       />
       <ClientWorkspaceNav clientId={id} current="actions" />
 
@@ -42,7 +42,9 @@ export default async function ClientActionsPage({
           title: action.title,
           how: action.how,
           ownerName: action.ownerName,
+          startDate: action.startDate,
           dueDate: action.dueDate,
+          businessDays: action.businessDays,
           status: action.status as ActionStatus,
           perspective: action.perspective,
           sector: action.sector,

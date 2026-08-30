@@ -13,6 +13,9 @@ export type CycleAction = {
   how: string;
   ownerName: string;
   sector: string;
+  businessDays?: number;
+  startDate?: string;
+  dueDate?: string;
 };
 
 export type CycleGoal = {
