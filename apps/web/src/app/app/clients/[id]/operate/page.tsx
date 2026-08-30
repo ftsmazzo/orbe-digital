@@ -159,6 +159,33 @@ export default async function OperatePage({ params }: { params: Promise<{ id: st
             </li>
           ))}
         </ul>
+        {payload.gut?.length || payload.mix4p || payload.ishikawa ? (
+          <div className="mt-5 grid gap-3 text-sm text-slate-700">
+            {payload.gut?.length ? (
+              <p>
+                <strong>GUT:</strong> {payload.gut.slice(0, 3).map((item) => `${item.item} (${item.score ?? item.gravidade * item.urgencia * item.tendencia})`).join(" · ")}
+              </p>
+            ) : null}
+            {payload.ishikawa?.problema ? (
+              <p>
+                <strong>Ishikawa:</strong> {payload.ishikawa.problema}
+              </p>
+            ) : null}
+            {payload.mix4p ? (
+              <p>
+                <strong>4Ps:</strong>{" "}
+                {["produto", "preco", "praca", "promocao"]
+                  .map((key) => {
+                    const field = payload.mix4p?.[key as keyof typeof payload.mix4p];
+                    const value = field && typeof field === "object" ? field.value : field;
+                    return value ? `${key}: ${value}` : null;
+                  })
+                  .filter(Boolean)
+                  .join(" · ") || "ainda sem evidencia"}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
       </Card>
 
       <div className="mb-6 grid gap-6 lg:grid-cols-3">

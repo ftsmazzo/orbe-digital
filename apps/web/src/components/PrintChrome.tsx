@@ -12,7 +12,7 @@ export function PrintChrome({
   children: React.ReactNode;
 }) {
   return (
-    <div className="mx-auto max-w-3xl bg-white p-8 text-[#012245]">
+    <div className="mx-auto max-w-3xl bg-white p-8 font-serif text-[12pt] leading-[1.5] text-[#012245]">
       <div className="mb-4 print:hidden">
         <button
           type="button"

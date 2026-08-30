@@ -18,7 +18,7 @@ export function wrapDhDocument(opts: {
   <title>${escapeHtml(opts.title)}</title>
   <style>
     @page { margin: 18mm 16mm 22mm; }
-    body { font-family: Georgia, "Times New Roman", serif; color: #012245; font-size: 12px; line-height: 1.45; }
+    body { font-family: "Times New Roman", Times, Georgia, serif; color: #012245; font-size: 12pt; line-height: 1.5; text-align: justify; }
     header { display: flex; align-items: center; gap: 16px; border-bottom: 3px solid #012245; padding-bottom: 12px; margin-bottom: 20px; }
     header img { height: 64px; }
     header .meta { font-size: 11px; color: #2e7271; }

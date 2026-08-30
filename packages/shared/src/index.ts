@@ -132,6 +132,12 @@ export type DiagnosticPayload = {
   swotMatrix?: SwotMatrix;
   /** Score 360 ponderado por perfil de engajamento. */
   score360?: Score360;
+  /** Priorizacao GUT (gravidade, urgencia, tendencia 1-5). */
+  gut?: GutItem[];
+  /** Ishikawa / 6M — causa do problema priorizado. */
+  ishikawa?: IshikawaDiagram;
+  /** 4Ps (Kotler) — so com evidencia. */
+  mix4p?: Mix4P;
   maturidade?: number;
   prioridades?: string[];
   riscos?: string[];
@@ -219,6 +225,31 @@ export type SwotMatrix = {
   fa?: number[][];
   wo?: number[][];
   wa?: number[][];
+};
+
+export type GutItem = {
+  item: string;
+  gravidade: number;
+  urgencia: number;
+  tendencia: number;
+  score?: number;
+};
+
+export type IshikawaDiagram = {
+  problema: string;
+  maoDeObra?: string[];
+  metodo?: string[];
+  maquina?: string[];
+  material?: string[];
+  medioAmbiente?: string[];
+  medicao?: string[];
+};
+
+export type Mix4P = {
+  produto?: DiagnosticFieldValue;
+  preco?: DiagnosticFieldValue;
+  praca?: DiagnosticFieldValue;
+  promocao?: DiagnosticFieldValue;
 };
 
 export type SalesQualificationCriterion =

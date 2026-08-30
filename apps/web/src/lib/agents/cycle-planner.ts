@@ -1,9 +1,10 @@
-import { PERSPECTIVES, type Perspective } from "@orbe/shared";
+import { PERSPECTIVES, type DiagnosticPayload, type Perspective } from "@orbe/shared";
 import { completeJson } from "@/lib/ai/claude";
 import type { CycleGoal, CyclePlan } from "@/lib/agents/cycle-types";
 import { enforceMapaBsc } from "@/lib/agents/tools/mapa-bsc";
 import { formatMethodForPrompt } from "@/lib/agents/tools/method-canon";
 import { formatDreBrief, type DreBrief } from "@/lib/agents/tools/leitor-dre";
+import { formatMatrizesForPrompt } from "@/lib/agents/tools/matrizes";
 
 export type { CycleAction, CycleGlobal, CycleGoal, CycleKpi, CyclePlan } from "@/lib/agents/cycle-types";
 
@@ -30,6 +31,12 @@ export async function planOrbeCycle(opts: {
     notes: [],
     gates: [],
   };
+  let diagnosticPayload: DiagnosticPayload | undefined;
+  try {
+    diagnosticPayload = JSON.parse(opts.diagnosticJson).payload;
+  } catch {
+    diagnosticPayload = undefined;
+  }
   const raw = await completeJson<{
     globals?: { title?: string; notes?: string }[];
     goals?: {
@@ -52,6 +59,8 @@ ${formatMethodForPrompt()}`,
 Setor: ${opts.sector ?? "nao informado"}
 
 ${formatDreBrief(dre)}
+
+${formatMatrizesForPrompt(diagnosticPayload)}
 
 Diagnostico consolidado:
 ${opts.diagnosticJson.slice(0, 14000)}

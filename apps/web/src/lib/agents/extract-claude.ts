@@ -2,6 +2,7 @@ import type { Confidence, DiagnosticFieldValue, DiagnosticPayload, Score360, Sco
 import { SCORE360_DIMENSIONS, SCORE360_PROFILES, computeScore360Total } from "@orbe/shared";
 import { completeJson, hasAnthropicKey } from "@/lib/ai/claude";
 import { formatMethodForPrompt } from "@/lib/agents/tools/method-canon";
+import { emptyMixIfUngrounded, normalizeGut, normalizeIshikawa } from "@/lib/agents/tools/matrizes";
 
 export type ExtractedDiagnostic = {
   payload: DiagnosticPayload;
@@ -121,6 +122,9 @@ Retorne JSON no formato:
     "operacional": { "processos_criticos": {...}, "gargalos": {...}, "fluxo_informacao": {...}, "tecnologia": {...}, "padronizacao": {...} },
     "comercial": { "canais": {...}, "conversao": {...}, "rotina_vendas": {...}, "materiais": {...} },
     "swot": { "forcas": {...}, "fraquezas": {...}, "oportunidades": {...}, "ameacas": {...} },
+    "gut": [{ "item": "problema evidenciado", "gravidade": 1-5, "urgencia": 1-5, "tendencia": 1-5 }],
+    "ishikawa": { "problema": "o de maior GUT", "maoDeObra": [], "metodo": [], "maquina": [], "material": [], "medioAmbiente": [], "medicao": [] },
+    "mix4p": { "produto": {...}, "preco": {...}, "praca": {...}, "promocao": {...} },
     "score360": {
       "perfil": "consultoria",
       "dimensoes": {
@@ -178,6 +182,9 @@ Retorne JSON no formato:
     operacional: normalizeSection(payloadRaw.operacional),
     comercial: normalizeSection(payloadRaw.comercial),
     swot: normalizeSection(payloadRaw.swot),
+    gut: normalizeGut((payloadRaw as { gut?: unknown }).gut),
+    ishikawa: normalizeIshikawa((payloadRaw as { ishikawa?: unknown }).ishikawa),
+    mix4p: emptyMixIfUngrounded(normalizeSection((payloadRaw as { mix4p?: unknown }).mix4p)),
     score360,
     maturidade: maturity,
     prioridades: priorities,

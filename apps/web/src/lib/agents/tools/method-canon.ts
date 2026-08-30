@@ -24,7 +24,21 @@ LEITOR DRE (Martins + Antonovz):
 
 GOVERNANCA: se missao/visao/valores/proposta existirem, sugerir melhoria; se nao, perguntar — nao inventar.
 
-5W2H em toda acao: o que, por que, quem, quando, onde, como, quanto (quanto so com evidencia).`;
+5W2H em toda acao: o que, por que, quem, quando, onde, como, quanto (quanto so com evidencia).
+
+MATRIZES (Daniel): SWOT em todo ciclo. GUT prioriza (G×U×T). Ishikawa (6M) no problema de maior GUT. Nao inventar nota GUT sem evidencia.
+
+4Ps / KOTLER: produto, preco, praca, promocao norteiam PA comercial. Nao copiar campanha sem posicionamento. Mix rentavel vs peso morto so com evidencia (sessao ou DRE) — Martins: nao matar item pelo rateio.
+
+SCRUM: sprints curtos nas PAs e reuniao E de inspect-and-adapt. Nao transformar o cliente em time de software.
+
+PORTER: posicao por custo, diferenciacao ou enfoque — nao copiar concorrente.
+
+CHIAVENATO / DRUCKER: PA sem dono nao fecha; cargo e salario so com evidencia; prioridade e o recurso do dirigente.
+
+WESKE / HAMMER / LIKER: processo = dono + evento + atividade + indicador; redesenhar se o processo estiver errado; nao copiar lean de fabrica em servico sem adaptar.
+
+RELATORIO: forma clara, fonte serifada, espaco 1,5, sem bibliografia. Marca DH. O que sair da face do relatorio permanece em versao anterior (auditoria).`;
 
 export function formatMethodForPrompt() {
   return METHOD_CANON;

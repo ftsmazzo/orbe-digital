@@ -255,52 +255,25 @@ async function diagnoseFromCockpit(orgId: string, clientId: string, clientName: 
   const best = pickBestDiagnostic(existingRows);
   const latestSessionWithText = sessions.find((session) => session.transcriptRaw?.trim());
 
-  if (best?.validated) {
-    await db.insert(diagnostics).values({
-      organizationId: orgId,
-      clientId,
-      sessionId: latestSessionWithText?.id ?? best.sessionId,
-      payload: extracted.payload,
-      maturity: extracted.maturity,
-      gaps: extracted.gaps,
-      priorities: extracted.priorities,
-      risks: extracted.risks,
-      openQuestions: extracted.openQuestions,
-      version: (best.version ?? 1) + 1,
-    });
-    return;
-  }
-
-  const thin = existingRows.find((row) => !row.validated && isThinHeuristicPayload((row.payload ?? {}) as DiagnosticPayload));
-  const target = thin ?? existingRows.find((row) => !row.validated);
-  if (target) {
-    await db
-      .update(diagnostics)
-      .set({
-        payload: extracted.payload,
-        maturity: extracted.maturity,
-        gaps: extracted.gaps,
-        priorities: extracted.priorities,
-        risks: extracted.risks,
-        openQuestions: extracted.openQuestions,
-        sessionId: latestSessionWithText?.id ?? target.sessionId,
-        version: (target.version ?? 1) + 1,
-        updatedAt: new Date(),
-      })
-      .where(eq(diagnostics.id, target.id));
-    return;
-  }
-
+  const maxVersion = existingRows.reduce((max, row) => Math.max(max, row.version ?? 1), 0);
   await db.insert(diagnostics).values({
     organizationId: orgId,
     clientId,
-    sessionId: latestSessionWithText?.id,
-    payload: extracted.payload,
+    sessionId: latestSessionWithText?.id ?? best?.sessionId,
+    payload: {
+      ...extracted.payload,
+      audit: {
+        previousId: best?.id ?? null,
+        keptPrevious: Boolean(best),
+        reason: "ciclo — versao anterior permanece para auditoria com o cliente",
+      },
+    },
     maturity: extracted.maturity,
     gaps: extracted.gaps,
     priorities: extracted.priorities,
     risks: extracted.risks,
     openQuestions: extracted.openQuestions,
+    version: maxVersion + 1,
   });
 }
 
