@@ -10,13 +10,20 @@ export default async function PlanningIndexPage() {
 
   return (
     <>
-      <PageHeader title="Planejamento" description="Escolha um cliente para abrir metas e indicadores." />
+      <PageHeader title="Planejamento" description="Sala de gestao. Metas nascem em Operacao; aqui voce revisa." />
       <Card>
         <div className="grid gap-3 md:grid-cols-2">
           {rows.map((client) => (
-            <Link key={client.id} href={`/app/clients/${client.id}/planning`} className="rounded-2xl border border-slate-100 p-4 font-semibold text-[#012245] hover:bg-slate-50">
-              {client.name}
-            </Link>
+            <div key={client.id} className="rounded-2xl border border-slate-100 p-4">
+              <Link href={`/app/clients/${client.id}/planning`} className="font-semibold text-[#012245] hover:underline">
+                {client.tradeName ?? client.name}
+              </Link>
+              <p className="mt-2 text-sm">
+                <Link href={`/app/clients/${client.id}/operate`} className="font-semibold text-[#2e7271]">
+                  Operar
+                </Link>
+              </p>
+            </div>
           ))}
         </div>
       </Card>

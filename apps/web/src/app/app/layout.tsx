@@ -4,15 +4,15 @@ import { LogoutButton } from "@/components/LogoutButton";
 import { getCurrentOrg } from "@/lib/org";
 
 const nav = [
-  { href: "/app/operate", label: "Operacao", icon: CirclePlay },
-  { href: "/app/clients", label: "Clientes", icon: Users },
-  { href: "/app/sessions", label: "Sessoes", icon: Mic2 },
-  { href: "/app/diagnostics", label: "Diagnosticos", icon: ClipboardList },
-  { href: "/app/planning", label: "Planejamento", icon: Target },
-  { href: "/app/actions", label: "Acoes", icon: LayoutDashboard },
-  { href: "/app/dashboard", label: "Dashboard", icon: BarChart3 },
-  { href: "/app/proposals", label: "Propostas", icon: Handshake },
-  { href: "/app/settings", label: "Config", icon: Settings },
+  { href: "/app/operate", label: "Operacao", hint: "Dia a dia", icon: CirclePlay },
+  { href: "/app/clients", label: "Clientes", hint: "Gestao", icon: Users },
+  { href: "/app/sessions", label: "Sessoes", hint: "Gestao", icon: Mic2 },
+  { href: "/app/diagnostics", label: "Diagnosticos", hint: "Gestao", icon: ClipboardList },
+  { href: "/app/planning", label: "Planejamento", hint: "Gestao", icon: Target },
+  { href: "/app/actions", label: "Acoes", hint: "Gestao", icon: LayoutDashboard },
+  { href: "/app/dashboard", label: "Dashboard", hint: "Gestao", icon: BarChart3 },
+  { href: "/app/proposals", label: "Propostas", hint: "Gestao", icon: Handshake },
+  { href: "/app/settings", label: "Config", hint: "Gestao", icon: Settings },
 ];
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -32,7 +32,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             return (
               <Link key={item.href} href={item.href} className="flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium text-white/78 transition hover:bg-white/10 hover:text-white">
                 <Icon className="h-4 w-4 text-[#c8a04c]" />
-                {item.label}
+                <span>
+                  {item.label}
+                  <span className="block text-[10px] font-normal uppercase tracking-wider text-white/40">{item.hint}</span>
+                </span>
               </Link>
             );
           })}

@@ -11,8 +11,18 @@ export default async function SessionsPage() {
   const [clientRows, sessionRows] = await Promise.all([
     db.select().from(clients).where(eq(clients.organizationId, orgId)).orderBy(desc(clients.updatedAt)),
     db
-      .select()
+      .select({
+        id: consultingSessions.id,
+        title: consultingSessions.title,
+        status: consultingSessions.status,
+        errorMessage: consultingSessions.errorMessage,
+        createdAt: consultingSessions.createdAt,
+        clientId: consultingSessions.clientId,
+        clientName: clients.name,
+        tradeName: clients.tradeName,
+      })
       .from(consultingSessions)
+      .leftJoin(clients, eq(clients.id, consultingSessions.clientId))
       .where(eq(consultingSessions.organizationId, orgId))
       .orderBy(desc(consultingSessions.createdAt)),
   ]);
@@ -21,7 +31,7 @@ export default async function SessionsPage() {
     <>
       <PageHeader
         title="Sessoes"
-        description="Grave a conversa no celular (PWA), envie audio ou cole a transcricao — o ORBE organiza o diagnostico."
+        description="Historico por empresa. No dia a dia, grave em Operacao dentro do cliente."
       />
       <div className="grid gap-6 xl:grid-cols-[420px_1fr]">
         <Card>
@@ -52,7 +62,7 @@ export default async function SessionsPage() {
                   className="rounded-2xl border border-slate-100 p-4 transition hover:bg-slate-50"
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <strong className="text-[#012245]">{session.title}</strong>
+                    <strong className="text-[#012245]">{session.tradeName ?? session.clientName ?? "Empresa"} · {session.title}</strong>
                     <span className="rounded-full bg-[#2e7271]/10 px-3 py-1 text-xs font-semibold text-[#2e7271]">
                       {SESSION_STATUS_LABEL[session.status] ?? session.status}
                     </span>

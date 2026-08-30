@@ -10,13 +10,20 @@ export default async function ActionsIndexPage() {
 
   return (
     <>
-      <PageHeader title="Acoes" description="Escolha um cliente para abrir o quadro de execucao." />
+      <PageHeader title="Acoes" description="Sala de gestao. Os 5W2H nascem em Operacao." />
       <Card>
         <div className="grid gap-3 md:grid-cols-2">
           {rows.map((client) => (
-            <Link key={client.id} href={`/app/clients/${client.id}/actions`} className="rounded-2xl border border-slate-100 p-4 font-semibold text-[#012245] hover:bg-slate-50">
-              {client.name}
-            </Link>
+            <div key={client.id} className="rounded-2xl border border-slate-100 p-4">
+              <Link href={`/app/clients/${client.id}/actions`} className="font-semibold text-[#012245] hover:underline">
+                {client.tradeName ?? client.name}
+              </Link>
+              <p className="mt-2 text-sm">
+                <Link href={`/app/clients/${client.id}/operate`} className="font-semibold text-[#2e7271]">
+                  Operar
+                </Link>
+              </p>
+            </div>
           ))}
         </div>
       </Card>
