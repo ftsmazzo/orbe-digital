@@ -290,21 +290,17 @@ export const DOCUMENT_KIND_LABELS: Record<DocumentKind, string> = {
 
 export const OPERATE_STEPS = [
   "capturar",
-  "diagnosticar",
+  "ciclo",
   "validar",
-  "planejar",
-  "propor",
   "acompanhar",
 ] as const;
 export type OperateStep = (typeof OPERATE_STEPS)[number];
 
 export const OPERATE_STEP_LABELS: Record<OperateStep, string> = {
   capturar: "Capturar (gravar ou documento)",
-  diagnosticar: "Diagnosticar",
-  validar: "Validar diagnostico",
-  planejar: "Planejar metas e acoes",
-  propor: "Gerar proposta",
-  acompanhar: "Acompanhar ciclo",
+  ciclo: "Processar ciclo ORBE",
+  validar: "Validar o servico",
+  acompanhar: "Acompanhar desenvolvimento",
 };
 
 export const ARTIFACT_KINDS = [

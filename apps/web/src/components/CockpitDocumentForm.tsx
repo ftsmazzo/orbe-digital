@@ -39,3 +39,42 @@ export function CockpitDocumentForm({ clientId }: { clientId: string }) {
     </form>
   );
 }
+
+export function ConsultantDirectionForm({ clientId }: { clientId: string }) {
+  const [pending, setPending] = useState(false);
+  const [message, setMessage] = useState("");
+
+  async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setPending(true);
+    setMessage("");
+    const form = event.currentTarget;
+    try {
+      await uploadClientDocument(clientId, new FormData(form));
+      form.reset();
+      setMessage("Direcionamento registrado. Entra no proximo ciclo.");
+    } catch {
+      setMessage("Falha ao registrar. Tente de novo.");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <form onSubmit={onSubmit} className="mt-4 grid gap-3">
+      <input type="hidden" name="title" value="Direcionamento do consultor" />
+      <Field label="O que o sistema deve priorizar, corrigir ou nao inventar">
+        <Textarea
+          name="pastedText"
+          rows={4}
+          required
+          placeholder="Ex.: nao usar DRE inventada; priorizar caixa e inadimplencia; dono comercial e a Ana..."
+        />
+      </Field>
+      {message ? <p className="text-sm text-[#2e7271]">{message}</p> : null}
+      <Button type="submit" variant="secondary" disabled={pending}>
+        {pending ? "Registrando..." : "Registrar direcionamento"}
+      </Button>
+    </form>
+  );
+}

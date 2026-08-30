@@ -93,18 +93,25 @@ export function extractDiagnosticHeuristic(transcript: string, clientName: strin
   };
 }
 
-/** Prefer Claude; fallback heuristico se key ausente ou API falhar. */
+/** Prefer Claude/OpenRouter. Heuristica so se allowHeuristic (nunca no cockpit). */
 export async function extractDiagnosticFromTranscript(
   transcript: string,
   clientName: string,
   knowledge?: string,
+  opts?: { allowHeuristic?: boolean },
 ): Promise<ExtractedDiagnostic> {
+  const allowHeuristic = opts?.allowHeuristic !== false;
   if (hasAnthropicKey()) {
     try {
       return await extractDiagnosticWithClaude(transcript, clientName, knowledge);
     } catch (error) {
-      console.error("[extract] Claude falhou, usando heuristica:", error);
+      console.error("[extract] LLM falhou:", error);
+      if (!allowHeuristic) {
+        throw error instanceof Error ? error : new Error(String(error));
+      }
     }
+  } else if (!allowHeuristic) {
+    throw new Error("OPENROUTER_API_KEY ou ANTHROPIC_API_KEY ausente. Recusando heuristica.");
   }
   return extractDiagnosticHeuristic(transcript, clientName);
 }

@@ -17,7 +17,7 @@ export default async function OperateHubPage() {
     <>
       <PageHeader
         title="Operacao"
-        description="Grave a sessao ou envie documento. A IA preenche o metodo; voce valida."
+        description="Grave, oriente, suba documento, valide e acompanhe. O sistema opera o metodo ORBE."
       />
       {rows.length === 0 ? (
         <Card>

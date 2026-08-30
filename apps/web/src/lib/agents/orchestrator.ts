@@ -5,8 +5,10 @@ export type OperateSnapshot = {
   hasTranscript: boolean;
   hasDocument: boolean;
   hasDiagnostic: boolean;
+  diagnosticThin: boolean;
   diagnosticValidated: boolean;
-  hasGoals: boolean;
+  goals: number;
+  actions: number;
   hasProposal: boolean;
 };
 
@@ -20,25 +22,17 @@ export type OperatePlan = {
 
 export function planOperate(state: OperateSnapshot): OperatePlan {
   if (!state.hasTranscript && !state.hasDocument && !state.hasReadySession) {
-    return step("capturar", null, "Grave a sessao ou envie um documento. A IA so preenche o que isso sustentar.");
+    return step("capturar", null, "Grave a sessao, oriente ou envie um documento. O sistema opera o metodo.");
   }
-  if (!state.hasDiagnostic) {
-    return step(
-      "diagnosticar",
-      "diagnosticar",
-      "Ha materia-prima (transcricao ou documento). Clique para extrair a ficha O.",
-    );
+  const incomplete =
+    !state.hasDiagnostic || state.diagnosticThin || state.goals < 4 || state.actions === 0 || !state.hasProposal;
+  if (incomplete) {
+    return step("ciclo", "ciclo", "O orquestrador preenche diagnostico, BSC, acoes e proposta. Voce so valida e acompanha.");
   }
   if (!state.diagnosticValidated) {
-    return step("validar", "validar", "Revise gaps e prioridades. Validar trava a versao e libera o plano.");
+    return step("validar", "validar", "Ciclo preenchido. Validar trava a qualidade do servico.");
   }
-  if (!state.hasGoals) {
-    return step("planejar", "planejar", "Diagnostico validado. Gerar rascunho de metas, KPIs e planos de acao.");
-  }
-  if (!state.hasProposal) {
-    return step("propor", "propor", "Plano no nucleo. Gerar proposta com marca DH para o Daniel revisar.");
-  }
-  return step("acompanhar", null, "Ciclo em andamento. Use gestao para dashboard, acoes e honorarios.");
+  return step("acompanhar", null, "Acompanhe o desenvolvimento. Grave de novo ou direcione quando algo mudar.");
 }
 
 function step(current: OperateStep, nextAction: OperateStep | null, hint: string): OperatePlan {
