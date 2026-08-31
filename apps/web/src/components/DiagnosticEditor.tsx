@@ -105,10 +105,14 @@ function matrixFromSwot(payload: DiagnosticPayload): SwotMatrix | undefined {
   }
   const swot = payload.swot;
   const forcas = linesFromField(swot?.forcas?.value);
-  const fraquezas = linesFromField(swot?.fraquezas?.value);
+  let fraquezas = linesFromField(swot?.fraquezas?.value);
   const oportunidades = linesFromField(swot?.oportunidades?.value);
   const ameacas = linesFromField(swot?.ameacas?.value);
-  if (!forcas.length && !fraquezas.length && !oportunidades.length && !ameacas.length) return existing;
+  if (!forcas.length && !fraquezas.length && !oportunidades.length && !ameacas.length) {
+    const fromGut = (payload.gut ?? []).map((row) => row.item?.trim()).filter(Boolean).slice(0, 6);
+    if (fromGut.length) fraquezas = fromGut;
+    else return existing;
+  }
   return {
     forcas,
     fraquezas,

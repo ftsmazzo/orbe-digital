@@ -6,14 +6,18 @@ Status: `inbox` · `renomeado` · `extraido` · `tool`
 
 ## Fila GPT (nessa ordem)
 
-| # | id | anexar este PDF | mensagem | tool_alvo |
-| --- | --- | --- | --- | --- |
-| 1 | bsc | `estrategia-em-aao-bsc-kaplan-e-norton.Pdf` | Extraia o metodo ORBE. tool_alvo: mapa_bsc | mapa_bsc — extraido |
-| 2 | mapas | `MAPAS ESTRATEGICOS - KAPLAN E NORTON.pdf` | Extraia o metodo ORBE. tool_alvo: mapa_bsc | mapa_bsc — extraido |
-| 3 | custos-comp | apostila Antonovz / ACE (nao o Martins) | Extraia o metodo ORBE. tool_alvo: leitor_dre | leitor_dre — extraido |
-| 3b | martins | `Contabilidade de Custos - Eliseu Martins.pdf` | Extraia o metodo ORBE. tool_alvo: leitor_dre | leitor_dre — extraido |
-| 4 | fipecafi | `Manual de Contabilidade Societária 2018 3ª edição.pdf` | Extraia o metodo ORBE. tool_alvo: leitor_dre | leitor_dre |
-| 5 | hill | `o-manuscrito-original-napoleon-hill.pdf` | Extraia o metodo ORBE. tool_alvo: perguntas_abertas | perguntas_abertas |
+Ja extraido: bsc, mapas, custos-comp, martins.
+
+O que fecha o diagnostico (um PDF por conversa):
+
+| # | id | anexar este PDF | tool_alvo |
+| --- | --- | --- | --- |
+| 1 | hill | `o-manuscrito-original-napoleon-hill.pdf` | perguntas_abertas |
+| 2 | assaf | `estrutura-e-analise-de-balancos-alexandrea-assaf-netopdf-5-pdf-free.pdf` | leitor_dre |
+| 3 | fipecafi | `Manual de Contabilidade Societária 2018 3ª edição.pdf` (so DRE + DFC + receita/despesa) | leitor_dre |
+| 4 | execution | `the-execution-premium-2116.pdf` | mapa_bsc |
+| 5 | chiavenato | `idalberto-chiavenato-gestao-de-pessoas-o-novo-papel.pdf` | processo_critico |
+| 6 | porter | `A_estrategia_competitiva_de_Michael_Port.pdf` | mix_comercial |
 
 Salve a resposta como `extracoes/{id}.md` (nao como PDF). Depois: “compile a extracao {id}”.
 

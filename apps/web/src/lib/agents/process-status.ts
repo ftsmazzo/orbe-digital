@@ -21,6 +21,7 @@ function filled(field: Fieldish): boolean {
   if (typeof field === "string") return field.trim().length > 0;
   const value = field.value;
   if (value == null || value === false) return false;
+  if (Array.isArray(value)) return value.some((item) => String(item).trim().length > 0);
   const text = String(value).trim();
   if (!text) return false;
   return !["nao identificado", "a validar na consultoria", "parcial"].includes(text.toLowerCase());

@@ -68,6 +68,32 @@ function swotList(raw: unknown) {
   return asTextList(raw).filter((item) => !isBlank(item));
 }
 
+function resolveSwot(payload: DiagnosticPayload, gut: GutItem[]) {
+  const matrix = payload.swotMatrix;
+  const fromMatrix = {
+    forcas: asTextList(matrix?.forcas).filter((item) => !isBlank(item)),
+    fraquezas: asTextList(matrix?.fraquezas).filter((item) => !isBlank(item)),
+    oportunidades: asTextList(matrix?.oportunidades).filter((item) => !isBlank(item)),
+    ameacas: asTextList(matrix?.ameacas).filter((item) => !isBlank(item)),
+  };
+  const matrixHas = Object.values(fromMatrix).some((list) => list.length);
+  const fields = payload.swot;
+  const fromFields = {
+    forcas: swotList(fields?.forcas),
+    fraquezas: swotList(fields?.fraquezas),
+    oportunidades: swotList(fields?.oportunidades),
+    ameacas: swotList(fields?.ameacas),
+  };
+  const fieldsHas = Object.values(fromFields).some((list) => list.length);
+  if (matrixHas) return { ...fromMatrix, fromGut: false };
+  if (fieldsHas) return { ...fromFields, fromGut: false };
+  const gutItems = gut.map((row) => row.item?.trim()).filter(Boolean);
+  if (gutItems.length) {
+    return { forcas: [] as string[], fraquezas: gutItems, oportunidades: [] as string[], ameacas: [] as string[], fromGut: true };
+  }
+  return { ...fromFields, fromGut: false };
+}
+
 function isBlank(value: string) {
   const text = value.trim().toLowerCase();
   return !text || text === "nao identificado" || text === "não identificado" || text === "n/a" || text === "-";
@@ -245,11 +271,7 @@ export function DiagnosticPrintBody({
 }) {
   const gut = gutRows(payload.gut);
   const top = gut[0];
-  const swot = payload.swotMatrix ?? payload.swot;
-  const forcas = swotList((swot as { forcas?: unknown })?.forcas);
-  const fraquezas = swotList((swot as { fraquezas?: unknown })?.fraquezas);
-  const oportunidades = swotList((swot as { oportunidades?: unknown })?.oportunidades);
-  const ameacas = swotList((swot as { ameacas?: unknown })?.ameacas);
+  const { forcas, fraquezas, oportunidades, ameacas, fromGut } = resolveSwot(payload, gut);
   const hasSwot = forcas.length || fraquezas.length || oportunidades.length || ameacas.length;
   const dateLabel = createdAt
     ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "long", timeZone: "America/Sao_Paulo" }).format(new Date(createdAt))
@@ -320,6 +342,11 @@ export function DiagnosticPrintBody({
       {hasSwot ? (
         <section className="mb-6 break-inside-avoid">
           <h2 className="mb-2 text-[13pt] font-semibold text-[#2e7271]">SWOT</h2>
+          {fromGut ? (
+            <p className="mb-2 text-[10pt] text-[#2e7271]">
+              Fraquezas derivadas da prioridade GUT — a sessao sustentou o problema; a SWOT nao veio preenchida.
+            </p>
+          ) : null}
           <div className="grid grid-cols-2 gap-3">
             <div className="rounded-xl border border-[#012245]/15 p-3">
               <p className="font-semibold text-[#2e7271]">Forcas</p>

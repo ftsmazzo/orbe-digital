@@ -84,7 +84,7 @@ export const APPOINTMENT_KIND_LABELS: Record<AppointmentKind, string> = {
 export type Confidence = "alta" | "media" | "baixa";
 
 export type DiagnosticFieldValue = {
-  value: string | number | boolean | null;
+  value: string | number | boolean | string[] | null;
   confianca?: Confidence;
   evidencia?: string;
 };

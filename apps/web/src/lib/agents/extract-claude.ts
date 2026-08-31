@@ -40,18 +40,52 @@ Regras obrigatorias:
 - Se a opiniao do consultor na transcricao nao for estrategica, registre em riscos (nao apague o fato).
 - Responda SOMENTE um objeto JSON valido, sem markdown.
 - evidencia com no maximo 12 palavras. Campos sem fato: omita a chave (nao invente).
+- SWOT: forcas, fraquezas, oportunidades e ameacas como { "value": ["item 1", "item 2"], "confianca": "alta", "evidencia": "..." }. Nunca array solto. Nunca value null se a sessao citou o fato — isso vira fraqueza/ameaca, nao some.
 - Feche todas as chaves. Se o limite apertar, corte campos vazios — nunca corte o JSON no meio.`;
 
 function asField(raw: unknown): DiagnosticFieldValue | undefined {
-  if (!raw || typeof raw !== "object") return undefined;
+  if (raw == null || raw === "") return undefined;
+  if (typeof raw === "string" || typeof raw === "number" || typeof raw === "boolean") {
+    return { value: raw, confianca: "media" };
+  }
+  if (Array.isArray(raw)) {
+    const list = asTextList(raw);
+    if (!list.length) return undefined;
+    return { value: list, confianca: "media" };
+  }
+  if (typeof raw !== "object") return undefined;
   const obj = raw as Record<string, unknown>;
+  let value = obj.value as DiagnosticFieldValue["value"];
+  if (Array.isArray(value)) {
+    const list = asTextList(value);
+    value = list.length ? list : null;
+  }
+  if (value === undefined || value === "") value = null;
+  if (value == null && typeof obj.evidencia !== "string") return undefined;
   const confianca = obj.confianca;
   const conf: Confidence | undefined =
     confianca === "alta" || confianca === "media" || confianca === "baixa" ? confianca : undefined;
   return {
-    value: (obj.value as DiagnosticFieldValue["value"]) ?? null,
+    value,
     confianca: conf,
     evidencia: typeof obj.evidencia === "string" ? obj.evidencia : undefined,
+  };
+}
+
+function swotHasItems(swot?: Record<string, DiagnosticFieldValue>) {
+  if (!swot) return false;
+  return ["forcas", "fraquezas", "oportunidades", "ameacas"].some((key) => linesFromField(swot[key]?.value).length > 0);
+}
+
+function swotFromGut(gut?: { item: string }[]): Record<string, DiagnosticFieldValue> | undefined {
+  const items = (gut ?? []).map((row) => row.item?.trim()).filter(Boolean).slice(0, 6);
+  if (!items.length) return undefined;
+  return {
+    fraquezas: {
+      value: items,
+      confianca: "media",
+      evidencia: "Problemas priorizados na GUT a partir da sessao.",
+    },
   };
 }
 
@@ -198,7 +232,11 @@ Retorne JSON no formato:
   }
 
   const score360 = normalizeScore360(payloadRaw.score360);
-  const swot = normalizeSection(payloadRaw.swot);
+  const gut = normalizeGut((payloadRaw as { gut?: unknown }).gut);
+  let swot = normalizeSection(payloadRaw.swot);
+  if (!swotHasItems(swot) && gut?.length) {
+    swot = { ...(swot ?? {}), ...swotFromGut(gut) };
+  }
 
   const payload: DiagnosticPayload = {
     empresa,
@@ -207,7 +245,7 @@ Retorne JSON no formato:
     operacional: normalizeSection(payloadRaw.operacional),
     comercial: normalizeSection(payloadRaw.comercial),
     swot,
-    gut: normalizeGut((payloadRaw as { gut?: unknown }).gut),
+    gut,
     ishikawa: normalizeIshikawa((payloadRaw as { ishikawa?: unknown }).ishikawa),
     mix4p: emptyMixIfUngrounded(normalizeSection((payloadRaw as { mix4p?: unknown }).mix4p)),
     swotMatrix: matrixFromSwotSection(swot),
