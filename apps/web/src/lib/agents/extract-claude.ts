@@ -4,6 +4,7 @@ import { completeJson, hasAnthropicKey } from "@/lib/ai/claude";
 import { formatMethodForPrompt } from "@/lib/agents/tools/method-canon";
 import { emptyMixIfUngrounded, normalizeGut, normalizeIshikawa } from "@/lib/agents/tools/matrizes";
 import { asNumber, asTextList } from "@/lib/text";
+import { applyMethodTools } from "@/lib/agents/tools/apply-method-tools";
 
 export type ExtractedDiagnostic = {
   payload: DiagnosticPayload;
@@ -257,17 +258,20 @@ Retorne JSON no formato:
     acoes_candidatas: stringList(payloadRaw.acoes_candidatas),
   };
 
-  return {
-    payload,
-    maturity,
-    gaps: gaps.length
-      ? gaps
-      : ["Diagnostico Claude gerado — validar campos vazios e evidencias com o consultor."],
-    priorities: priorities.length ? priorities : ["Completar levantamento ORBE nas lacunas marcadas."],
-    risks: risks.length ? risks : ["Risco de premissas nao validadas se a ficha nao for revisada."],
-    openQuestions: openQuestions.length
-      ? openQuestions
-      : ["Quais indicadores o cliente ja acompanha hoje?"],
-    source: "claude",
-  };
+  return applyMethodTools(
+    {
+      payload,
+      maturity,
+      gaps: gaps.length
+        ? gaps
+        : ["Diagnostico Claude gerado — validar campos vazios e evidencias com o consultor."],
+      priorities: priorities.length ? priorities : ["Completar levantamento ORBE nas lacunas marcadas."],
+      risks: risks.length ? risks : ["Risco de premissas nao validadas se a ficha nao for revisada."],
+      openQuestions: openQuestions.length
+        ? openQuestions
+        : ["Quais indicadores o cliente ja acompanha hoje?"],
+      source: "claude",
+    },
+    transcript,
+  );
 }

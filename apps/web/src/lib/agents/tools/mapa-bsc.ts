@@ -98,6 +98,12 @@ export function enforceMapaBsc(plan: CyclePlan, dre: DreBrief): CyclePlan {
         openQuestions.push(`Quem responde pela acao “${action.title}”?`);
       }
     }
+    for (const kpi of kpis) {
+      if (!kpi.name.trim() || /^(kpi|indicador)\s/i.test(kpi.name)) {
+        missing.push(`Perspectiva ${perspective}: KPI sem definicao (formula, fonte, periodo) — mapa nao fecha.`);
+        openQuestions.push(`Qual indicador mostrara avanco ou fracasso do objetivo “${item.title}”?`);
+      }
+    }
     byPerspective.set(perspective, { ...item, perspective, kpis, actions });
   }
 
@@ -135,6 +141,10 @@ export function enforceMapaBsc(plan: CyclePlan, dre: DreBrief): CyclePlan {
   if (globals.length < 6) {
     missing.push(`Metas globais: ${globals.length} de 6. Completar com o que a sessao sustentou; nao inventar as que faltam.`);
     openQuestions.push("Quais sao as metas globais desta empresa (ate 6)?");
+  }
+
+  if (!openQuestions.some((question) => /revis[aã]o estrategica|proxima revis/i.test(question))) {
+    openQuestions.push("Qual e a data da proxima revisao estrategica do mapa?");
   }
 
   return stampActionDates({

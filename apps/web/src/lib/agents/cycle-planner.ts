@@ -5,6 +5,9 @@ import { enforceMapaBsc } from "@/lib/agents/tools/mapa-bsc";
 import { formatMethodForPrompt } from "@/lib/agents/tools/method-canon";
 import { formatDreBrief, type DreBrief } from "@/lib/agents/tools/leitor-dre";
 import { formatMatrizesForPrompt } from "@/lib/agents/tools/matrizes";
+import { formatHillForPrompt } from "@/lib/agents/tools/perguntas-abertas";
+import { formatChiavenatoForPrompt } from "@/lib/agents/tools/processo-critico";
+import { formatPorterForPrompt } from "@/lib/agents/tools/mix-comercial";
 
 export type { CycleAction, CycleGlobal, CycleGoal, CycleKpi, CyclePlan } from "@/lib/agents/cycle-types";
 
@@ -61,6 +64,12 @@ Setor: ${opts.sector ?? "nao informado"}
 ${formatDreBrief(dre)}
 
 ${formatMatrizesForPrompt(diagnosticPayload)}
+
+${formatHillForPrompt()}
+
+${formatPorterForPrompt()}
+
+${formatChiavenatoForPrompt(diagnosticPayload)}
 
 Diagnostico consolidado:
 ${opts.diagnosticJson.slice(0, 14000)}

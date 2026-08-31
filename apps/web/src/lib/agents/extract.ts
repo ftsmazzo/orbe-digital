@@ -1,6 +1,7 @@
 import type { DiagnosticPayload } from "@orbe/shared";
 import { extractDiagnosticWithClaude, type ExtractedDiagnostic } from "@/lib/agents/extract-claude";
 import { hasAnthropicKey } from "@/lib/ai/claude";
+import { applyMethodTools } from "@/lib/agents/tools/apply-method-tools";
 
 function includesAny(text: string, words: string[]) {
   return words.some((word) => text.includes(word));
@@ -82,15 +83,18 @@ export function extractDiagnosticHeuristic(transcript: string, clientName: strin
     acoes_candidatas: priorities.map((priority) => `Transformar em plano de acao: ${priority}`),
   };
 
-  return {
-    payload,
-    maturity: payload.maturidade ?? 2,
-    gaps,
-    priorities,
-    risks,
-    openQuestions,
-    source: "heuristic",
-  };
+  return applyMethodTools(
+    {
+      payload,
+      maturity: payload.maturidade ?? 2,
+      gaps,
+      priorities,
+      risks,
+      openQuestions,
+      source: "heuristic",
+    },
+    transcript,
+  );
 }
 
 /** Prefer Claude/OpenRouter. Heuristica so se allowHeuristic (nunca no cockpit). */
