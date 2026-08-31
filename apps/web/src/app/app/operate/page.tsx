@@ -17,7 +17,7 @@ export default async function OperateHubPage() {
     <>
       <PageHeader
         title="Operacao"
-        description="Grave, oriente, suba documento, valide e acompanhe. O sistema opera o metodo ORBE."
+        description="Escolha o cliente. No celular: Gravar, Agenda e Operar ficam na barra de baixo."
       />
       {rows.length === 0 ? (
         <Card>

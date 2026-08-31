@@ -13,11 +13,14 @@ export default async function ClientsPage() {
 
   return (
     <>
-      <PageHeader title="Clientes" description="Clique no nome para operar (gravar / documento). Gestao fica no atalho." />
-      <div className="grid gap-6 xl:grid-cols-[360px_1fr]">
+      <PageHeader title="Clientes" description="Funil comercial. No celular, deslize as etapas." />
+      <div className="grid gap-6 xl:grid-cols-[320px_minmax(0,1fr)]">
         <Card>
-          <h2 className="text-lg font-semibold text-[#012245]">Novo cliente</h2>
-          <form action={createClient} className="mt-4 grid gap-3">
+          <details className="xl:open" open>
+            <summary className="cursor-pointer text-lg font-semibold text-[#012245] xl:pointer-events-none xl:list-none">
+              Novo cliente
+            </summary>
+            <form action={createClient} className="mt-4 grid gap-3">
             <Field label="Razao social"><Input name="name" required /></Field>
             <Field label="Nome fantasia"><Input name="tradeName" /></Field>
             <Field label="CNPJ"><Input name="cnpj" /></Field>
@@ -32,19 +35,20 @@ export default async function ClientsPage() {
             </Field>
             <Field label="Notas"><Textarea name="notes" rows={3} /></Field>
             <Button>Criar cliente</Button>
-          </form>
+            </form>
+          </details>
         </Card>
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-2 xl:mx-0 xl:grid xl:grid-cols-3 xl:overflow-visible xl:px-0 xl:pb-0">
           {rows.length === 0 ? (
-            <Card className="md:col-span-2 xl:col-span-3">
+            <Card className="min-w-[260px] shrink-0 xl:col-span-3 xl:min-w-0">
               <h2 className="font-semibold text-[#012245]">Nenhum cliente ainda</h2>
               <p className="mt-2 text-sm text-slate-600">
-                Use o formulario ao lado para criar o primeiro cliente do funil ORBE (lead → sessao → proposta → ciclo).
+                Use o formulario para criar o primeiro cliente do funil ORBE.
               </p>
             </Card>
           ) : null}
           {byStage.map(({ stage, clients: stageClients }) => (
-            <Card key={stage} className="min-h-64">
+            <Card key={stage} className="min-h-56 min-w-[260px] shrink-0 snap-start xl:min-w-0">
               <h2 className="font-semibold text-[#012245]">{CRM_STAGE_LABELS[stage]}</h2>
               <p className="text-sm text-slate-500">{stageClients.length} cliente(s)</p>
               <div className="mt-4 space-y-3">

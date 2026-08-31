@@ -30,12 +30,12 @@ export default async function SessionsPage() {
   return (
     <>
       <PageHeader
-        title="Sessoes"
-        description="Historico por empresa. No dia a dia, grave em Operacao dentro do cliente."
+        title="Gravar sessao"
+        description="Escolha o cliente, grave a conversa e processe. O historico fica abaixo."
       />
-      <div className="grid gap-6 xl:grid-cols-[420px_1fr]">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,420px)_1fr]">
         <Card>
-          <h2 className="text-lg font-semibold text-[#012245]">Nova sessao</h2>
+          <h2 className="text-lg font-semibold text-[#012245]">Gravador</h2>
           {clientRows.length === 0 ? (
             <p className="mt-4 text-sm text-slate-600">
               Crie um cliente no CRM antes de abrir uma sessao.{" "}
@@ -52,7 +52,7 @@ export default async function SessionsPage() {
           <div className="mt-4 grid gap-3">
             {sessionRows.length === 0 ? (
               <p className="text-sm text-slate-500">
-                Nenhuma sessao ainda. Use o gravador ao lado para iniciar o primeiro registro.
+                Nenhuma sessao ainda. Use o gravador acima.
               </p>
             ) : (
               sessionRows.map((session) => (

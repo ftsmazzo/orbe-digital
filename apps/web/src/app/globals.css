@@ -15,6 +15,8 @@
 body {
   background: var(--background);
   color: var(--foreground);
+  min-height: 100dvh;
+  overflow-x: hidden;
 }
 
 button,
@@ -22,6 +24,11 @@ input,
 select,
 textarea {
   font: inherit;
+}
+
+button,
+a {
+  touch-action: manipulation;
 }
 
 .prose-orbe h1,

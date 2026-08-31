@@ -91,8 +91,10 @@ export default async function AgendaPage({
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
-        <AgendaMonth year={year} month={month} byDay={byDay} />
-        <div className="space-y-4">
+        <div className="order-2 min-w-0 xl:order-1">
+          <AgendaMonth year={year} month={month} byDay={byDay} />
+        </div>
+        <div className="order-1 space-y-4 xl:order-2">
           <AgendaCreateForm
             defaultDate={todayKey()}
             clients={clientRows.map((client) => ({ id: client.id, name: client.tradeName ?? client.name }))}

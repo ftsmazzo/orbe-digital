@@ -116,7 +116,7 @@ export function SessionCreateForm({
       </label>
 
       {kind === "estrategica" ? (
-        <details open className="rounded-2xl border border-[#2e7271]/25 bg-[#2e7271]/5 p-4 text-sm text-[#012245]">
+        <details className="rounded-2xl border border-[#2e7271]/25 bg-[#2e7271]/5 p-4 text-sm text-[#012245]">
           <summary className="cursor-pointer font-semibold">Roteiro da conversa — nao e formulario</summary>
           <p className="mt-2 text-slate-600">{DEFAULT_SALES_PLAYBOOK.opening.script}</p>
           <p className="mt-2 font-medium">{DEFAULT_SALES_PLAYBOOK.goldenRule}</p>

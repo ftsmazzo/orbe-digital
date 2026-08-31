@@ -50,7 +50,7 @@ export function AgendaMonth({
   const cells = monthCells(year, month);
 
   return (
-    <section className="min-w-0 rounded-3xl border border-[#012245]/10 bg-white p-5">
+    <section className="min-w-0 rounded-3xl border border-[#012245]/10 bg-white p-3 md:p-5">
       <div className="mb-4 flex items-center justify-between gap-3">
         <Link
           href={`/app/agenda?mes=${monthQuery(prev.year, prev.month)}`}
@@ -75,13 +75,13 @@ export function AgendaMonth({
       </div>
       <div className="mt-1 grid grid-cols-7 gap-1">
         {cells.map((key, index) => {
-          if (!key) return <div key={`empty-${index}`} className="min-h-24 rounded-2xl bg-[#f7f4ee]/40" />;
+          if (!key) return <div key={`empty-${index}`} className="min-h-11 rounded-xl bg-[#f7f4ee]/40 md:min-h-24 md:rounded-2xl" />;
           const events = byDay.get(key) ?? [];
           const isToday = key === today;
           return (
             <div
               key={key}
-              className={`min-h-24 rounded-2xl border p-1.5 ${
+              className={`min-h-11 rounded-xl border p-1 md:min-h-24 md:rounded-2xl md:p-1.5 ${
                 isToday ? "border-[#c8a04c] bg-[#c8a04c]/10" : "border-transparent bg-[#f7f4ee]/70"
               }`}
             >

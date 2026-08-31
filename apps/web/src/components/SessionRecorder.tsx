@@ -183,7 +183,7 @@ export function SessionRecorder({ onRecordingReady, disabled }: Props) {
             type="button"
             disabled={disabled}
             onClick={start}
-            className="rounded-xl bg-[#c0392b] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#a93226] disabled:opacity-50"
+            className="w-full rounded-xl bg-[#c0392b] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#a93226] disabled:opacity-50 sm:w-auto"
           >
             Iniciar gravacao
           </button>
