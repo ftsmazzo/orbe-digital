@@ -25,14 +25,14 @@ export function AgendaSyncCard({ httpsUrl, webcalUrl }: { httpsUrl: string; webc
         Assinatura viva: prazo, reunião e lembrete entram sozinhos. Não é o arquivo baixado — aquele não atualiza.
       </p>
 
-      <div className="mt-4 grid gap-3">
-        <div className="rounded-2xl bg-[#f7f4ee] p-3">
+      <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 sm:items-stretch">
+        <div className="flex h-full flex-col rounded-2xl bg-[#f7f4ee] p-4">
           <p className="text-sm font-semibold text-[#012245]">iPhone</p>
-          <p className="mt-1 text-xs text-slate-500">
-            Toque em abrir. No Calendário, confirme a assinatura. Ou: Ajustes → Apps → Calendário → Contas → Adicionar conta
+          <p className="mt-1 flex-1 text-xs leading-5 text-slate-500">
+            Toque em abrir. No Calendário, confirme a assinatura. Ou: Ajustes → Calendário → Contas → Adicionar conta
             assinada.
           </p>
-          <div className="mt-3 flex flex-wrap gap-2">
+          <div className="mt-4 flex flex-wrap gap-2">
             <a
               href={webcalUrl}
               className="inline-flex min-h-11 items-center rounded-xl bg-[#012245] px-4 py-2 text-sm font-semibold text-white"
@@ -45,13 +45,13 @@ export function AgendaSyncCard({ httpsUrl, webcalUrl }: { httpsUrl: string; webc
           </div>
         </div>
 
-        <div className="rounded-2xl bg-[#f7f4ee] p-3">
+        <div className="flex h-full flex-col rounded-2xl bg-[#f7f4ee] p-4">
           <p className="text-sm font-semibold text-[#012245]">Google Agenda</p>
-          <p className="mt-1 text-xs text-slate-500">
-            No computador: outros calendários → + → da URL. Cole o link HTTPS. O Google atualiza sozinho (às vezes leva
-            algumas horas na primeira vez).
+          <p className="mt-1 flex-1 text-xs leading-5 text-slate-500">
+            Outros calendários → + → da URL. Cole o link HTTPS. O Google atualiza sozinho (às vezes leva algumas horas na
+            primeira vez).
           </p>
-          <div className="mt-3 flex flex-wrap gap-2">
+          <div className="mt-4 flex flex-wrap gap-2">
             <a
               href="https://calendar.google.com/calendar/u/0/r/settings/addbyurl"
               target="_blank"
@@ -65,11 +65,11 @@ export function AgendaSyncCard({ httpsUrl, webcalUrl }: { httpsUrl: string; webc
             </Button>
           </div>
         </div>
-
-        <a href="/app/agenda/ics" className="text-xs font-semibold text-[#2e7271] underline">
-          Só baixar o arquivo .ics (não sincroniza)
-        </a>
       </div>
+
+      <a href="/app/agenda/ics" className="mt-3 inline-block text-xs font-semibold text-[#2e7271] underline">
+        Só baixar o arquivo .ics (não sincroniza)
+      </a>
     </section>
   );
 }

@@ -85,11 +85,11 @@ export default async function AgendaPage({
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
-        <div className="order-2 min-w-0 xl:order-1">
+        <div className="order-2 min-w-0 space-y-4 xl:order-1">
           <AgendaMonth year={year} month={month} byDay={byDay} />
+          <AgendaSyncCard httpsUrl={subscribe.httpsUrl} webcalUrl={subscribe.webcalUrl} />
         </div>
         <div className="order-1 space-y-4 xl:order-2">
-          <AgendaSyncCard httpsUrl={subscribe.httpsUrl} webcalUrl={subscribe.webcalUrl} />
           <AgendaCreateForm
             defaultDate={todayKey()}
             clients={clientRows.map((client) => ({ id: client.id, name: client.tradeName ?? client.name }))}
