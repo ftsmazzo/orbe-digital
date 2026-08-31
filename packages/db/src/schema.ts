@@ -316,6 +316,22 @@ export const actionItems = pgTable("action_items", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
+/** Agenda do consultor: reunioes e lembretes. Prazos de acao entram no calendario sem esta tabela. */
+export const appointments = pgTable("appointments", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  organizationId: uuid("organization_id")
+    .notNull()
+    .references(() => organizations.id, { onDelete: "cascade" }),
+  clientId: uuid("client_id").references(() => clients.id, { onDelete: "set null" }),
+  actionId: uuid("action_id").references(() => actionItems.id, { onDelete: "set null" }),
+  kind: text("kind").notNull(),
+  title: text("title").notNull(),
+  startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
+  endsAt: timestamp("ends_at", { withTimezone: true }),
+  notes: text("notes"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
 export const reports = pgTable("reports", {
   id: uuid("id").defaultRandom().primaryKey(),
   organizationId: uuid("organization_id")

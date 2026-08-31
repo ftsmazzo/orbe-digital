@@ -73,6 +73,9 @@ export default async function DashboardIndexPage() {
             ))}
           </ol>
         )}
+        <Link href="/app/agenda" className="mt-4 inline-block text-sm font-semibold text-[#2e7271]">
+          Abrir agenda
+        </Link>
       </Card>
 
       <Card className="mt-6">

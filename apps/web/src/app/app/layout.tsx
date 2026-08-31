@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { BarChart3, CirclePlay, ClipboardList, Handshake, LayoutDashboard, Mic2, Settings, Target, Users } from "lucide-react";
+import { BarChart3, CalendarDays, CirclePlay, ClipboardList, Handshake, LayoutDashboard, Mic2, Settings, Target, Users } from "lucide-react";
 import { LogoutButton } from "@/components/LogoutButton";
 import { getCurrentOrg } from "@/lib/org";
 
 const nav = [
   { href: "/app/operate", label: "Operacao", hint: "Dia a dia", icon: CirclePlay },
+  { href: "/app/agenda", label: "Agenda", hint: "Dia a dia", icon: CalendarDays },
   { href: "/app/clients", label: "Clientes", hint: "Gestao", icon: Users },
   { href: "/app/sessions", label: "Sessoes", hint: "Gestao", icon: Mic2 },
   { href: "/app/diagnostics", label: "Diagnosticos", hint: "Gestao", icon: ClipboardList },
@@ -55,6 +56,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <nav className="flex items-center gap-3 text-sm">
               <Link href="/app/operate" className="font-semibold text-[#012245]">
                 Operacao
+              </Link>
+              <Link href="/app/agenda" className="font-semibold text-[#012245]">
+                Agenda
               </Link>
               <Link href="/app/sessions" className="font-semibold text-[#c0392b]">
                 Gravador

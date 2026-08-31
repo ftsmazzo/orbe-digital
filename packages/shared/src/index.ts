@@ -73,6 +73,14 @@ export const ACTION_STATUS_LABELS: Record<ActionStatus, string> = {
   nao_iniciado: "Não iniciado",
 };
 
+export const APPOINTMENT_KINDS = ["reuniao", "lembrete"] as const;
+export type AppointmentKind = (typeof APPOINTMENT_KINDS)[number];
+
+export const APPOINTMENT_KIND_LABELS: Record<AppointmentKind, string> = {
+  reuniao: "Reunião",
+  lembrete: "Lembrete",
+};
+
 export type Confidence = "alta" | "media" | "baixa";
 
 export type DiagnosticFieldValue = {

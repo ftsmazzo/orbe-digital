@@ -3,9 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { and, desc, eq } from "drizzle-orm";
-import { ACTION_STATUSES, CRM_STAGES, PERSPECTIVES, computeScore360Total, type ActionStatus, type CrmStage, type Perspective, type SalesQualification, type Score360 } from "@orbe/shared";
+import { ACTION_STATUSES, APPOINTMENT_KINDS, CRM_STAGES, PERSPECTIVES, computeScore360Total, type ActionStatus, type AppointmentKind, type CrmStage, type Perspective, type SalesQualification, type Score360 } from "@orbe/shared";
 import {
   actionItems,
+  appointments,
   clientArtifacts,
   clientPeople,
   clientContracts,
@@ -36,6 +37,7 @@ import { pickBestDiagnostic } from "@/lib/agents/process-status";
 import { readDreBrief } from "@/lib/agents/tools/leitor-dre";
 import { replaceQuando, scheduleActionWindow, toDateInput } from "@/lib/actions/schedule";
 import { stampMissingActionDates } from "@/lib/actions/stamp-dates";
+import { parseLocalDateTime } from "@/lib/agenda/calendar";
 import { dueDateFromBusinessDays } from "@/lib/finance/business-days";
 import { computePayrollCost } from "@/lib/finance/payroll-cost";
 import { computeValuation, type ValuationInput } from "@/lib/finance/valuation";
@@ -492,6 +494,7 @@ export async function createActionItem(clientId: string, formData: FormData) {
   });
   revalidatePath(`/app/clients/${clientId}/actions`);
   revalidatePath(`/app/clients/${clientId}/dashboard`);
+  revalidatePath("/app/agenda");
 }
 
 export async function updateActionStatus(actionId: string, clientId: string, formData: FormData) {
@@ -558,6 +561,39 @@ export async function suggestActionDates(clientId: string) {
   await stampMissingActionDates(orgId, clientId, holidays);
   revalidatePath(`/app/clients/${clientId}/actions`);
   revalidatePath(`/app/clients/${clientId}/dashboard`);
+}
+
+export async function createAppointment(formData: FormData) {
+  const kind = (text(formData, "kind") ?? "reuniao") as AppointmentKind;
+  if (!APPOINTMENT_KINDS.includes(kind)) return;
+  const title = text(formData, "title");
+  const startsAt = parseLocalDateTime(text(formData, "date"), text(formData, "time"));
+  if (!title || !startsAt) return;
+
+  const duration = numberValue(formData, "duration") ?? (kind === "reuniao" ? 60 : undefined);
+  const endsAt = duration ? new Date(startsAt.getTime() + duration * 60_000) : undefined;
+  const { orgId } = await getCurrentOrg();
+
+  await db.insert(appointments).values({
+    organizationId: orgId,
+    clientId: text(formData, "clientId"),
+    kind,
+    title,
+    startsAt,
+    endsAt,
+    notes: text(formData, "notes"),
+  });
+  revalidatePath("/app/agenda");
+  revalidatePath("/app/dashboard");
+}
+
+export async function deleteAppointment(appointmentId: string) {
+  const { orgId } = await getCurrentOrg();
+  await db
+    .delete(appointments)
+    .where(and(eq(appointments.id, appointmentId), eq(appointments.organizationId, orgId)));
+  revalidatePath("/app/agenda");
+  revalidatePath("/app/dashboard");
 }
 
 export async function updateIndicatorResult(clientId: string, indicatorId: string, formData: FormData) {
