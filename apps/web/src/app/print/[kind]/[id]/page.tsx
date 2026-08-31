@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
 import { and, eq } from "drizzle-orm";
 import { PrintChrome } from "@/components/PrintChrome";
-import { PERSPECTIVE_LABELS } from "@orbe/shared";
+import { DiagnosticPrintBody } from "@/components/DiagnosticPrintBody";
+import { PERSPECTIVE_LABELS, type DiagnosticPayload } from "@orbe/shared";
 import { actionItems, clients, db, diagnostics, indicators, proposals, reports, clientContracts } from "@/lib/db";
 import { getCurrentOrg } from "@/lib/org";
 
@@ -48,10 +49,16 @@ export default async function PrintPage({
     if (!row) notFound();
     const [client] = await db.select().from(clients).where(eq(clients.id, row.clientId)).limit(1);
     return (
-      <PrintChrome title={`Diagnostico v${row.version}`} clientName={client?.name ?? ""}>
-        <pre className="whitespace-pre-wrap text-sm">{JSON.stringify(row.payload, null, 2)}</pre>
-        <h2 className="mt-4 font-semibold">Prioridades</h2>
-        <ul>{row.priorities.map((p) => <li key={p}>{p}</li>)}</ul>
+      <PrintChrome title={`Diagnostico ORBE v${row.version}`} clientName={client?.name ?? ""}>
+        <DiagnosticPrintBody
+          payload={(row.payload ?? {}) as DiagnosticPayload}
+          priorities={row.priorities}
+          risks={row.risks}
+          gaps={row.gaps}
+          openQuestions={row.openQuestions}
+          version={row.version}
+          createdAt={row.createdAt}
+        />
       </PrintChrome>
     );
   }
