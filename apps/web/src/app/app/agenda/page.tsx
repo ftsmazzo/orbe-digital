@@ -1,16 +1,17 @@
 import { and, desc, eq } from "drizzle-orm";
 import { APPOINTMENT_KINDS, type AppointmentKind } from "@orbe/shared";
 import { AgendaAgenda, AgendaCreateForm, AgendaMonth } from "@/components/AgendaBoard";
+import { AgendaSyncCard } from "@/components/AgendaSyncCard";
 import { PageHeader } from "@/components/ui";
 import { isActionOverdue } from "@/lib/actions/pulse";
 import { stampMissingActionDates } from "@/lib/actions/stamp-dates";
 import {
-  dayKey,
   groupByDay,
   parseYearMonth,
   todayKey,
   type AgendaEvent,
 } from "@/lib/agenda/calendar";
+import { calendarSubscribeUrls } from "@/lib/agenda/feed-token";
 import { actionItems, appointments, clients, db } from "@/lib/db";
 import { getCurrentOrg } from "@/lib/org";
 
@@ -23,6 +24,7 @@ export default async function AgendaPage({
   const { year, month } = parseYearMonth(mes);
   const { orgId } = await getCurrentOrg();
   await stampMissingActionDates(orgId);
+  const subscribe = calendarSubscribeUrls(orgId);
 
   const [clientRows, actionRows, appointmentRows] = await Promise.all([
     db
@@ -74,14 +76,6 @@ export default async function AgendaPage({
       <PageHeader
         title="Agenda"
         description="Prazos que o ciclo já calculou, reuniões que você marca, lembretes no dia. O CRM continua o funil."
-        action={
-          <a
-            href="/app/agenda/ics"
-            className="rounded-xl border border-[#012245]/15 bg-white px-4 py-2 text-sm font-semibold text-[#012245]"
-          >
-            Baixar no calendário
-          </a>
-        }
       />
 
       <div className="mb-5 flex flex-wrap gap-3 text-xs font-semibold">
@@ -95,6 +89,7 @@ export default async function AgendaPage({
           <AgendaMonth year={year} month={month} byDay={byDay} />
         </div>
         <div className="order-1 space-y-4 xl:order-2">
+          <AgendaSyncCard httpsUrl={subscribe.httpsUrl} webcalUrl={subscribe.webcalUrl} />
           <AgendaCreateForm
             defaultDate={todayKey()}
             clients={clientRows.map((client) => ({ id: client.id, name: client.tradeName ?? client.name }))}
