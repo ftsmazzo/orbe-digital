@@ -6,6 +6,7 @@ import { requireOrg } from "@/lib/org";
 import { persistFitFromTranscript } from "@/lib/sales/persist-fit";
 import { formatSessionMarkdown } from "@/lib/sessions/format-transcript";
 import { putObject } from "@/lib/storage";
+import { audioTooLargeForWhisper, triggerSessionStt } from "@/lib/sessions/stt";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -103,36 +104,38 @@ export async function POST(request: Request) {
           .where(eq(consultingSessions.id, session.id));
 
         if (process.env.N8N_WEBHOOK_STT) {
-          const baseUrl = process.env.BETTER_AUTH_URL ?? "";
-          const callbackSecret = process.env.N8N_CALLBACK_SECRET ?? "dev-callback";
-          const webhookRes = await fetch(process.env.N8N_WEBHOOK_STT, {
-            method: "POST",
-            headers: { "content-type": "application/json" },
-            body: JSON.stringify({
+          if (audioTooLargeForWhisper(audio.size)) {
+            await db
+              .update(consultingSessions)
+              .set({
+                status: "erro",
+                errorMessage:
+                  "Audio acima de 24 MB — o Whisper nao aceita. Baixe, corte em trechos de ~20 min e envie de novo nesta sessao.",
+                updatedAt: new Date(),
+              })
+              .where(eq(consultingSessions.id, session.id));
+          } else {
+            const fired = await triggerSessionStt({
               sessionId: session.id,
               clientId,
               clientName: client.name,
               audioKey: stored.key,
               mimeType: audio.type || "audio/mp4",
-              callbackSecret,
-              audioDownloadUrl: `${baseUrl}/api/internal/sessions/${session.id}/audio`,
-              callbackUrl: `${baseUrl}/api/webhooks/n8n/session`,
-            }),
-          });
-          if (!webhookRes.ok) {
-            const detail = await webhookRes.text().catch(() => "");
-            await db
-              .update(consultingSessions)
-              .set({
-                status: "erro",
-                errorMessage: `Falha ao disparar STT (${webhookRes.status}). ${detail.slice(0, 200)}`,
-                updatedAt: new Date(),
-              })
-              .where(eq(consultingSessions.id, session.id));
-            return NextResponse.json(
-              { error: "Audio salvo, mas o STT nao aceitou o pedido. Tente de novo.", id: session.id },
-              { status: 502 },
-            );
+            });
+            if (!fired.ok) {
+              await db
+                .update(consultingSessions)
+                .set({
+                  status: "erro",
+                  errorMessage: fired.error,
+                  updatedAt: new Date(),
+                })
+                .where(eq(consultingSessions.id, session.id));
+              return NextResponse.json(
+                { error: "Audio salvo, mas o STT nao aceitou o pedido. Tente de novo.", id: session.id },
+                { status: 502 },
+              );
+            }
           }
         } else {
           const transcript = formatSessionMarkdown(mockTranscript(client.name));

@@ -3,6 +3,7 @@ import { and, eq } from "drizzle-orm";
 import type { SalesQualification } from "@orbe/shared";
 import { ClientFitBanner } from "@/components/ClientFitBanner";
 import { MemoryMarkdown } from "@/components/MemoryMarkdown";
+import { SessionAudioRescue } from "@/components/SessionAudioRescue";
 import { SessionStatusPoller } from "@/components/SessionStatusPoller";
 import { Button, Card, Field, LinkButton, PageHeader, Textarea } from "@/components/ui";
 import { formatSessionMarkdown } from "@/lib/sessions/format-transcript";
@@ -43,7 +44,7 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
         }
       />
       <div className="mb-4">
-        <SessionStatusPoller status={session.status} />
+        <SessionStatusPoller status={session.status} since={session.updatedAt ?? session.createdAt} />
       </div>
       {session.status === "erro" && session.errorMessage ? (
         <p className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
@@ -118,10 +119,11 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
               {session.consentGiven ? `Autorizado em ${formatDateTime(session.consentAt)}` : "Nao registrado"}
             </p>
           </Card>
-          <Card>
-            <h2 className="font-semibold text-[#012245]">Audio</h2>
-            <p className="mt-2 break-all text-sm text-slate-600">{session.audioUrl ?? "Nenhum arquivo enviado."}</p>
-          </Card>
+          <SessionAudioRescue
+            sessionId={session.id}
+            hasAudio={Boolean(session.audioKey)}
+            status={session.status}
+          />
         </div>
       </div>
     </>

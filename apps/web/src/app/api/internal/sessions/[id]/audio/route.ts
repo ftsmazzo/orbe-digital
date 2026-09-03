@@ -3,6 +3,9 @@ import { and, eq } from "drizzle-orm";
 import { consultingSessions, db } from "@/lib/db";
 import { getObject } from "@/lib/storage";
 
+export const runtime = "nodejs";
+export const maxDuration = 300;
+
 function authorized(request: Request) {
   const secret = request.headers.get("x-orbe-callback-secret");
   return secret === (process.env.N8N_CALLBACK_SECRET ?? "dev-callback");
