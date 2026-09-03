@@ -7,6 +7,7 @@ import { SessionAudioRescue } from "@/components/SessionAudioRescue";
 import { SessionStatusPoller } from "@/components/SessionStatusPoller";
 import { Button, Card, Field, LinkButton, PageHeader, Textarea } from "@/components/ui";
 import { formatSessionMarkdown } from "@/lib/sessions/format-transcript";
+import { parseSttProgress, toPublicSttProgress } from "@/lib/sessions/stt-progress";
 import { clients, consultingSessions, db } from "@/lib/db";
 import { formatDateTime, SESSION_STATUS_LABEL } from "@/lib/format";
 import { getCurrentOrg } from "@/lib/org";
@@ -31,6 +32,7 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
   const statusLabel = SESSION_STATUS_LABEL[session.status] ?? session.status;
   const hasTranscript = Boolean(session.transcriptRaw?.trim());
   const isEstrategica = session.kind === "estrategica";
+  const sttProgress = toPublicSttProgress(parseSttProgress(session.transcriptSegments));
 
   return (
     <>
@@ -44,7 +46,11 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
         }
       />
       <div className="mb-4">
-        <SessionStatusPoller status={session.status} since={session.updatedAt ?? session.createdAt} />
+        <SessionStatusPoller
+          status={session.status}
+          since={session.updatedAt ?? session.createdAt}
+          progress={sttProgress}
+        />
       </div>
       {session.status === "erro" && session.errorMessage ? (
         <p className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
@@ -72,7 +78,11 @@ export default async function SessionDetailPage({ params }: { params: Promise<{ 
               {hasTranscript ? (
                 <MemoryMarkdown markdown={formatSessionMarkdown(session.transcriptRaw ?? "")} />
               ) : session.status === "processando" ? (
-                <p className="text-sm text-slate-500">Aguardando Whisper… a pagina atualiza sozinha.</p>
+                <p className="text-sm text-slate-500">
+                  {sttProgress?.chunked
+                    ? "Audio longo: transcrevendo em partes e montando o texto completo."
+                    : "Aguardando a transcricao… o status acima mostra o progresso."}
+                </p>
               ) : (
                 <p className="text-sm text-slate-500">A transcricao ainda nao foi recebida.</p>
               )}

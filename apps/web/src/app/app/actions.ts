@@ -29,7 +29,7 @@ import {
 import { mockTranscript } from "@/lib/agents/extract";
 import { persistFitFromTranscript } from "@/lib/sales/persist-fit";
 import { formatSessionMarkdown } from "@/lib/sessions/format-transcript";
-import { audioTooLargeForWhisper, triggerSessionStt } from "@/lib/sessions/stt";
+import { enqueueSessionStt, markSttPreparing } from "@/lib/sessions/prepare-stt";
 import { researchMarketEnriched, type MarketScope } from "@/lib/agents/market-research-apify";
 import { generateProposalHtml } from "@/lib/agents/proposal";
 import { generateReportHtml } from "@/lib/agents/report";
@@ -222,31 +222,8 @@ export async function createSession(formData: FormData) {
       .where(eq(consultingSessions.id, session.id));
 
     if (process.env.N8N_WEBHOOK_STT) {
-      if (audioTooLargeForWhisper(audio.size)) {
-        await db
-          .update(consultingSessions)
-          .set({
-            status: "erro",
-            errorMessage:
-              "Audio acima de 24 MB — o Whisper nao aceita. Baixe, corte em trechos de ~20 min e envie de novo nesta sessao.",
-            updatedAt: new Date(),
-          })
-          .where(eq(consultingSessions.id, session.id));
-      } else {
-        const fired = await triggerSessionStt({
-          sessionId: session.id,
-          clientId,
-          clientName: client.name,
-          audioKey: stored.key,
-          mimeType: audio.type || "audio/webm",
-        });
-        if (!fired.ok) {
-          await db
-            .update(consultingSessions)
-            .set({ status: "erro", errorMessage: fired.error, updatedAt: new Date() })
-            .where(eq(consultingSessions.id, session.id));
-        }
-      }
+      await markSttPreparing(session.id);
+      enqueueSessionStt(session.id);
     } else {
       await persistTranscriptAndFit({
         orgId,
@@ -325,19 +302,8 @@ export async function retrySessionStt(sessionId: string) {
     .set({ status: "processando", errorMessage: null, updatedAt: new Date() })
     .where(eq(consultingSessions.id, sessionId));
 
-  const fired = await triggerSessionStt({
-    sessionId,
-    clientId: session.clientId,
-    clientName: client.name,
-    audioKey: session.audioKey,
-    mimeType: session.mimeType,
-  });
-  if (!fired.ok) {
-    await db
-      .update(consultingSessions)
-      .set({ status: "erro", errorMessage: fired.error, updatedAt: new Date() })
-      .where(eq(consultingSessions.id, sessionId));
-  }
+  await markSttPreparing(sessionId);
+  enqueueSessionStt(sessionId);
 
   revalidatePath(`/app/sessions/${sessionId}`);
   revalidatePath(`/app/clients/${session.clientId}`);
@@ -364,35 +330,21 @@ export async function attachSessionAudio(sessionId: string, formData: FormData) 
   if (!client) return;
 
   const stored = await putObject(audio, `sessions/${session.id}`);
-  const tooBig = audioTooLargeForWhisper(audio.size);
   await db
     .update(consultingSessions)
     .set({
       audioKey: stored.key,
       audioUrl: stored.url,
       mimeType: audio.type || "audio/mp4",
-      status: tooBig ? "erro" : "processando",
-      errorMessage: tooBig
-        ? "Audio acima de 24 MB — o Whisper nao aceita. Corte em trechos de ~20 min e envie de novo."
-        : null,
+      status: "processando",
+      errorMessage: null,
       updatedAt: new Date(),
     })
     .where(eq(consultingSessions.id, sessionId));
 
-  if (!tooBig) {
-    const fired = await triggerSessionStt({
-      sessionId,
-      clientId: session.clientId,
-      clientName: client.name,
-      audioKey: stored.key,
-      mimeType: audio.type || "audio/mp4",
-    });
-    if (!fired.ok) {
-      await db
-        .update(consultingSessions)
-        .set({ status: "erro", errorMessage: fired.error, updatedAt: new Date() })
-        .where(eq(consultingSessions.id, sessionId));
-    }
+  if (process.env.N8N_WEBHOOK_STT) {
+    await markSttPreparing(sessionId);
+    enqueueSessionStt(sessionId);
   }
 
   revalidatePath(`/app/sessions/${sessionId}`);

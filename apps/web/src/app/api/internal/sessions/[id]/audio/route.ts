@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { and, eq } from "drizzle-orm";
 import { consultingSessions, db } from "@/lib/db";
 import { getObject } from "@/lib/storage";
+import { extensionForAudioMime } from "@/lib/sessions/split-audio";
+import { nextPendingPartIndex, parseSttProgress } from "@/lib/sessions/stt-progress";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -9,18 +11,6 @@ export const maxDuration = 300;
 function authorized(request: Request) {
   const secret = request.headers.get("x-orbe-callback-secret");
   return secret === (process.env.N8N_CALLBACK_SECRET ?? "dev-callback");
-}
-
-/** Whisper/OpenAI valida pelo nome do arquivo — `.audio` é rejeitado. */
-function extensionForMime(mime: string | null | undefined) {
-  const m = (mime || "").toLowerCase().split(";")[0].trim();
-  if (m.includes("webm")) return "webm";
-  if (m.includes("ogg") || m.includes("oga")) return "ogg";
-  if (m.includes("wav")) return "wav";
-  if (m === "audio/mpeg" || m === "audio/mp3" || m.includes("mpga")) return "mp3";
-  if (m.includes("flac")) return "flac";
-  if (m.includes("mp4") || m.includes("m4a") || m.includes("aac")) return "m4a";
-  return "webm";
 }
 
 export async function GET(
@@ -42,13 +32,29 @@ export async function GET(
     return NextResponse.json({ error: "Audio nao encontrado" }, { status: 404 });
   }
 
-  const bytes = await getObject(session.audioKey);
+  const url = new URL(request.url);
+  const partParam = url.searchParams.get("part");
+  const progress = parseSttProgress(session.transcriptSegments);
+
+  let key = session.audioKey;
+  let mime = session.mimeType;
+  if (progress?.partKeys.length) {
+    const requested = partParam != null ? Number(partParam) : nextPendingPartIndex(progress);
+    const index = Number.isInteger(requested) && requested >= 0 ? requested : 0;
+    const partKey = progress.partKeys[index];
+    if (partKey) {
+      key = partKey;
+      mime = "audio/mpeg";
+    }
+  }
+
+  const bytes = await getObject(key);
   if (!bytes) {
     return NextResponse.json({ error: "Arquivo indisponivel" }, { status: 404 });
   }
 
-  const ext = extensionForMime(session.mimeType);
-  const contentType = session.mimeType || (ext === "m4a" ? "audio/mp4" : `audio/${ext}`);
+  const ext = extensionForAudioMime(mime);
+  const contentType = mime || (ext === "m4a" ? "audio/mp4" : `audio/${ext}`);
   const body = Buffer.from(bytes);
   return new NextResponse(body, {
     status: 200,

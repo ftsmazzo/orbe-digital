@@ -33,7 +33,10 @@ ENV HOSTNAME=0.0.0.0
 ENV TZ=America/Sao_Paulo
 ENV UPLOAD_DIR=/tmp/orbe-uploads
 
-RUN addgroup --system --gid 1001 nodejs \
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends ffmpeg ca-certificates \
+  && rm -rf /var/lib/apt/lists/* \
+  && addgroup --system --gid 1001 nodejs \
   && adduser --system --uid 1001 nextjs \
   && mkdir -p /tmp/orbe-uploads \
   && chown -R nextjs:nodejs /tmp/orbe-uploads

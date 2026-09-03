@@ -102,6 +102,31 @@ export async function putObject(file: File, prefix = "sessions") {
   };
 }
 
+export async function putBytes(bytes: Buffer, key: string, contentType: string) {
+  if (usingMinio()) {
+    const bucket = process.env.MINIO_BUCKET ?? "orbe";
+    try {
+      await getS3Client().send(
+        new PutObjectCommand({
+          Bucket: bucket,
+          Key: key,
+          Body: bytes,
+          ContentType: contentType,
+        }),
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`Falha ao gravar audio no MinIO: ${message}`);
+    }
+    return { key, url: `s3://${bucket}/${key}` };
+  }
+
+  const fullPath = path.join(uploadRoot, key);
+  await mkdir(path.dirname(fullPath), { recursive: true });
+  await writeFile(fullPath, bytes);
+  return { key, url: fullPath };
+}
+
 export async function getObject(key: string) {
   if (usingMinio()) {
     const bucket = process.env.MINIO_BUCKET ?? "orbe";

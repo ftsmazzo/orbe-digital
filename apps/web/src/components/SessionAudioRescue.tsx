@@ -17,14 +17,9 @@ export function SessionAudioRescue({
       <h2 className="font-semibold text-[#012245]">Audio desta sessao</h2>
       <p className="mt-2 text-sm text-slate-600">
         {hasAudio
-          ? "O arquivo ja esta no ORBE. Voce baixa, reprocessa ou envia um corte — sem abrir o n8n."
-          : "Nenhum audio ficou gravado. Envie o arquivo (ou um corte de ~20 min) para transcrever nesta mesma sessao."}
+          ? "O arquivo ja esta no ORBE. Sessoes longas sao quebradas internamente depois da gravacao — o texto sai completo, sem cortar na mao."
+          : "Nenhum audio ficou gravado. Envie o arquivo para transcrever nesta mesma sessao."}
       </p>
-      {stuck ? (
-        <p className="mt-2 text-sm text-amber-800">
-          Sessao de mais de ~40 min ou arquivo acima de 24 MB trava o Whisper. Corte em dois e envie cada parte.
-        </p>
-      ) : null}
 
       <div className="mt-4 grid gap-2">
         {hasAudio ? (
@@ -46,7 +41,7 @@ export function SessionAudioRescue({
 
       <form action={attachSessionAudio.bind(null, sessionId)} className="mt-4 grid gap-2">
         <label className="grid gap-1 text-sm font-medium text-slate-700">
-          <span>{hasAudio ? "Ou enviar outro arquivo / corte" : "Enviar arquivo de audio"}</span>
+          <span>{hasAudio ? "Ou enviar outro arquivo" : "Enviar arquivo de audio"}</span>
           <input
             name="audio"
             type="file"

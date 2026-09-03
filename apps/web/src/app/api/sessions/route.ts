@@ -6,10 +6,10 @@ import { requireOrg } from "@/lib/org";
 import { persistFitFromTranscript } from "@/lib/sales/persist-fit";
 import { formatSessionMarkdown } from "@/lib/sessions/format-transcript";
 import { putObject } from "@/lib/storage";
-import { audioTooLargeForWhisper, triggerSessionStt } from "@/lib/sessions/stt";
+import { enqueueSessionStt, markSttPreparing } from "@/lib/sessions/prepare-stt";
 
 export const runtime = "nodejs";
-export const maxDuration = 120;
+export const maxDuration = 300;
 
 export async function GET() {
   const org = await requireOrg();
@@ -104,39 +104,8 @@ export async function POST(request: Request) {
           .where(eq(consultingSessions.id, session.id));
 
         if (process.env.N8N_WEBHOOK_STT) {
-          if (audioTooLargeForWhisper(audio.size)) {
-            await db
-              .update(consultingSessions)
-              .set({
-                status: "erro",
-                errorMessage:
-                  "Audio acima de 24 MB — o Whisper nao aceita. Baixe, corte em trechos de ~20 min e envie de novo nesta sessao.",
-                updatedAt: new Date(),
-              })
-              .where(eq(consultingSessions.id, session.id));
-          } else {
-            const fired = await triggerSessionStt({
-              sessionId: session.id,
-              clientId,
-              clientName: client.name,
-              audioKey: stored.key,
-              mimeType: audio.type || "audio/mp4",
-            });
-            if (!fired.ok) {
-              await db
-                .update(consultingSessions)
-                .set({
-                  status: "erro",
-                  errorMessage: fired.error,
-                  updatedAt: new Date(),
-                })
-                .where(eq(consultingSessions.id, session.id));
-              return NextResponse.json(
-                { error: "Audio salvo, mas o STT nao aceitou o pedido. Tente de novo.", id: session.id },
-                { status: 502 },
-              );
-            }
-          }
+          await markSttPreparing(session.id);
+          enqueueSessionStt(session.id);
         } else {
           const transcript = formatSessionMarkdown(mockTranscript(client.name));
           await db

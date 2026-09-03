@@ -215,9 +215,9 @@ export function SessionRecorder({ onRecordingReady, disabled }: Props) {
       ) : null}
 
       {recording && elapsedMs >= 40 * 60_000 ? (
-        <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-900">
-          Mais de 40 min: o Whisper pode travar. Pare agora, processe este trecho e grave o restante numa segunda
-          sessao — ou baixe o audio depois e envie cortado.
+        <p className="mt-3 rounded-xl border border-[#c8a04c]/30 bg-[#f7f4ee] px-3 py-2 text-sm text-[#012245]">
+          Sessao longa: depois de parar, o ORBE quebra o audio sozinho e junta o texto. A transcricao leva um pouco
+          mais — nao precisa cortar na mao.
         </p>
       ) : null}
 

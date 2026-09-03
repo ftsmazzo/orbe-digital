@@ -10,12 +10,24 @@ export async function triggerSessionStt(opts: {
   clientName: string;
   audioKey: string;
   mimeType?: string | null;
+  partIndex?: number;
+  partTotal?: number;
+  runId?: string;
 }): Promise<{ ok: boolean; error?: string }> {
   const webhook = process.env.N8N_WEBHOOK_STT?.trim();
   if (!webhook) return { ok: false, error: "STT nao configurado (N8N_WEBHOOK_STT)." };
 
   const baseUrl = (process.env.BETTER_AUTH_URL ?? process.env.NEXT_PUBLIC_BETTER_AUTH_URL ?? "").replace(/\/$/, "");
   const callbackSecret = process.env.N8N_CALLBACK_SECRET ?? "dev-callback";
+  const chunked = opts.partIndex != null && opts.partTotal != null && opts.partTotal > 1;
+  const audioQuery = chunked ? `?part=${opts.partIndex}` : "";
+  const callbackParams = new URLSearchParams();
+  if (chunked) {
+    callbackParams.set("part", String(opts.partIndex));
+    callbackParams.set("total", String(opts.partTotal));
+  }
+  if (opts.runId) callbackParams.set("run", opts.runId);
+  const callbackQuery = callbackParams.toString() ? `?${callbackParams.toString()}` : "";
 
   const response = await fetch(webhook, {
     method: "POST",
@@ -27,8 +39,11 @@ export async function triggerSessionStt(opts: {
       audioKey: opts.audioKey,
       mimeType: opts.mimeType || "audio/webm",
       callbackSecret,
-      audioDownloadUrl: `${baseUrl}/api/internal/sessions/${opts.sessionId}/audio`,
-      callbackUrl: `${baseUrl}/api/webhooks/n8n/session`,
+      partIndex: opts.partIndex,
+      partTotal: opts.partTotal,
+      sttRunId: opts.runId,
+      audioDownloadUrl: `${baseUrl}/api/internal/sessions/${opts.sessionId}/audio${audioQuery}`,
+      callbackUrl: `${baseUrl}/api/webhooks/n8n/session${callbackQuery}`,
     }),
   });
 
